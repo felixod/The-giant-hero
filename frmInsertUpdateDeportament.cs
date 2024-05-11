@@ -78,11 +78,9 @@ namespace SQLBuilder
         {
             // Проверяем, заполнены ли все три поля
             bool isNameFilled = !string.IsNullOrWhiteSpace(txtName.Text);
-            bool isPrefixFilled = !string.IsNullOrWhiteSpace(txtPrefix.Text);
-            bool isCodeFilled = !string.IsNullOrWhiteSpace(txtCode.Text);
 
-            // Если все три поля заполнены, включаем кнопку, иначе отключаем
-            cmdOK.Enabled = isNameFilled && isPrefixFilled && isCodeFilled;
+            // Если поле заполнено, включаем кнопку, иначе отключаем
+            cmdOK.Enabled = isNameFilled;
         }
 
         private void cmdClose_Click(object sender, EventArgs e)
@@ -91,16 +89,6 @@ namespace SQLBuilder
         }
 
         private void txtName_TextChanged(object sender, EventArgs e)
-        {
-            UpdateButton();
-        }
-
-        private void txtPrefix_TextChanged(object sender, EventArgs e)
-        {
-            UpdateButton();
-        }
-
-        private void txtCode_TextChanged(object sender, EventArgs e)
         {
             UpdateButton();
         }

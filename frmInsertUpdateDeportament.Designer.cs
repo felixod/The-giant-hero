@@ -61,7 +61,6 @@
             txtCode.Name = "txtCode";
             txtCode.Size = new Size(178, 23);
             txtCode.TabIndex = 5;
-            txtCode.TextChanged += txtCode_TextChanged;
             // 
             // txtPrefix
             // 
@@ -69,7 +68,6 @@
             txtPrefix.Name = "txtPrefix";
             txtPrefix.Size = new Size(159, 23);
             txtPrefix.TabIndex = 4;
-            txtPrefix.TextChanged += txtPrefix_TextChanged;
             // 
             // label3
             // 
