@@ -46,12 +46,15 @@
             treeView1 = new TreeView();
             cmdFill = new Button();
             cmdClear = new Button();
+            contextMenuListView = new ContextMenuStrip(components);
+            removeToolStripMenuItem = new ToolStripMenuItem();
             groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer).BeginInit();
             splitContainer.Panel1.SuspendLayout();
             splitContainer.Panel2.SuspendLayout();
             splitContainer.SuspendLayout();
             contextMenuTreeView.SuspendLayout();
+            contextMenuListView.SuspendLayout();
             SuspendLayout();
             // 
             // cmdClose
@@ -142,6 +145,7 @@
             // listView
             // 
             listView.Columns.AddRange(new ColumnHeader[] { columnName, columnType, columnDescription, columnInstr });
+            listView.ContextMenuStrip = contextMenuListView;
             listView.Dock = DockStyle.Fill;
             listView.Location = new Point(0, 0);
             listView.Name = "listView";
@@ -196,6 +200,19 @@
             cmdClear.UseVisualStyleBackColor = true;
             cmdClear.Click += cmdClear_Click;
             // 
+            // contextMenuListView
+            // 
+            contextMenuListView.Items.AddRange(new ToolStripItem[] { removeToolStripMenuItem });
+            contextMenuListView.Name = "contextMenuListView";
+            contextMenuListView.Size = new Size(181, 48);
+            // 
+            // removeToolStripMenuItem
+            // 
+            removeToolStripMenuItem.Name = "removeToolStripMenuItem";
+            removeToolStripMenuItem.Size = new Size(180, 22);
+            removeToolStripMenuItem.Text = "Удалить";
+            removeToolStripMenuItem.Click += removeToolStripMenuItem_Click;
+            // 
             // frmStructure
             // 
             AcceptButton = cmdSave;
@@ -221,6 +238,7 @@
             ((System.ComponentModel.ISupportInitialize)splitContainer).EndInit();
             splitContainer.ResumeLayout(false);
             contextMenuTreeView.ResumeLayout(false);
+            contextMenuListView.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -243,5 +261,7 @@
         private ColumnHeader columnInstr;
         private Button cmdFill;
         private Button cmdClear;
+        private ContextMenuStrip contextMenuListView;
+        private ToolStripMenuItem removeToolStripMenuItem;
     }
 }

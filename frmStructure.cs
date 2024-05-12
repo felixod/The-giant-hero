@@ -235,6 +235,13 @@ namespace SQLBuilder
         }
 
         /// <summary>
+        /// Контекстное меню списка. Удалить запись
+        /// </summary>
+        private void removeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+        }
+
+        /// <summary>
         /// Обработка события. Двойной клик на элементе дерева. Открыть форму редактирования элемента
         /// </summary>
         private void treeView_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
@@ -311,5 +318,7 @@ namespace SQLBuilder
             }
             LoadParams();
         }
+
+
     }
 }
