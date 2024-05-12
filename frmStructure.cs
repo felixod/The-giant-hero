@@ -290,6 +290,7 @@ namespace SQLBuilder
             foreach (var p in ps)
             {
                 var param = new ListViewItem(new[] { p.name, p.type, p.Desc.Description, p.Instr.Name });
+                param.Tag = p.id;
                 listView.Items.Add(param);
             }
         }
