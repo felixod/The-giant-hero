@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Data;
 
 namespace SQLBuilder
@@ -196,7 +197,7 @@ namespace SQLBuilder
         /// </summary>
         private void frmStructure_Load(object sender, EventArgs e)
         {
-
+            LoadParams();
         }
 
         /// <summary>
@@ -239,6 +240,75 @@ namespace SQLBuilder
         private void treeView_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
         {
             OpenForm(false);
+        }
+
+        private void cmdFill_Click(object sender, EventArgs e)
+        {
+            Random random = new();
+            using ApplicationContext context = new();
+
+            var param = new MSPDB_Params
+            {
+                name = random.Next(1, 1001).ToString(),
+                type = random.Next(1, 1001).ToString()
+            };
+            context.MSPDB_Params.Add(param);
+            context.SaveChanges();
+
+            var desc = new MSPDB_Params_Desc
+            {
+                dtb = DateTime.Now,
+                id_param = param.id,
+                Description = random.Next(1, 1001).ToString()
+            };
+            context.MSPDB_Params_Desc.Add(desc);
+            context.SaveChanges();
+
+            var instr = new MSPDB_Params_Instr
+            {
+                dtb = DateTime.Now,
+                id_param = param.id,
+                Name = random.Next(1, 1001).ToString()
+            };
+            context.MSPDB_Params_Instr.Add(instr);
+            context.SaveChanges();
+            LoadParams();
+        }
+
+        /// <summary>
+        /// Загрузка параметров в список
+        /// </summary>
+        private void LoadParams()
+        {
+            listView.Items.Clear();
+            using ApplicationContext context = new();
+            var ps = context.MSPDB_Params
+                .Include(t1 => t1.Desc)
+                .Include(t1 => t1.Instr)
+                .ToList();
+
+            foreach (var p in ps)
+            {
+                var param = new ListViewItem(new[] { p.name, p.type, p.Desc.Description, p.Instr.Name });
+                listView.Items.Add(param);
+            }
+        }
+
+        private void cmdClear_Click(object sender, EventArgs e)
+        {
+            using ApplicationContext context = new();
+            var ps = context.MSPDB_Params
+                .Include(t1 => t1.Desc)
+                .Include(t1 => t1.Instr)
+                .ToList();
+            foreach (var p in ps)
+            {
+                context.MSPDB_Params_Instr.Remove(p.Instr);
+                context.MSPDB_Params_Desc.Remove(p.Desc);
+                context.MSPDB_Params.Remove(p);
+                context.SaveChanges();
+            }
+            LoadParams();
         }
     }
 }

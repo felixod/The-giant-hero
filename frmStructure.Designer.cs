@@ -38,10 +38,18 @@
             insertToolStripMenuItem = new ToolStripMenuItem();
             updateToolStripMenuItem = new ToolStripMenuItem();
             deleteToolStripMenuItem = new ToolStripMenuItem();
+            listView = new ListView();
+            columnName = new ColumnHeader();
+            columnType = new ColumnHeader();
+            columnDescription = new ColumnHeader();
+            columnInstr = new ColumnHeader();
             treeView1 = new TreeView();
+            cmdFill = new Button();
+            cmdClear = new Button();
             groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer).BeginInit();
             splitContainer.Panel1.SuspendLayout();
+            splitContainer.Panel2.SuspendLayout();
             splitContainer.SuspendLayout();
             contextMenuTreeView.SuspendLayout();
             SuspendLayout();
@@ -85,6 +93,10 @@
             // splitContainer.Panel1
             // 
             splitContainer.Panel1.Controls.Add(treeView);
+            // 
+            // splitContainer.Panel2
+            // 
+            splitContainer.Panel2.Controls.Add(listView);
             splitContainer.Size = new Size(770, 375);
             splitContainer.SplitterDistance = 256;
             splitContainer.TabIndex = 0;
@@ -127,12 +139,62 @@
             deleteToolStripMenuItem.Text = "Удалить";
             deleteToolStripMenuItem.Click += deleteToolStripMenuItem_Click;
             // 
+            // listView
+            // 
+            listView.Columns.AddRange(new ColumnHeader[] { columnName, columnType, columnDescription, columnInstr });
+            listView.Dock = DockStyle.Fill;
+            listView.Location = new Point(0, 0);
+            listView.Name = "listView";
+            listView.Size = new Size(510, 375);
+            listView.TabIndex = 0;
+            listView.UseCompatibleStateImageBehavior = false;
+            listView.View = View.Details;
+            // 
+            // columnName
+            // 
+            columnName.Text = "Название";
+            columnName.Width = 200;
+            // 
+            // columnType
+            // 
+            columnType.Text = "Тип";
+            // 
+            // columnDescription
+            // 
+            columnDescription.Text = "Описание";
+            columnDescription.Width = 300;
+            // 
+            // columnInstr
+            // 
+            columnInstr.Text = "Формула";
+            columnInstr.Width = 200;
+            // 
             // treeView1
             // 
             treeView1.Location = new Point(318, 439);
             treeView1.Name = "treeView1";
             treeView1.Size = new Size(8, 8);
             treeView1.TabIndex = 3;
+            // 
+            // cmdFill
+            // 
+            cmdFill.Location = new Point(15, 415);
+            cmdFill.Name = "cmdFill";
+            cmdFill.Size = new Size(75, 23);
+            cmdFill.TabIndex = 4;
+            cmdFill.Text = "Заполнить";
+            cmdFill.UseVisualStyleBackColor = true;
+            cmdFill.Click += cmdFill_Click;
+            // 
+            // cmdClear
+            // 
+            cmdClear.Location = new Point(96, 415);
+            cmdClear.Name = "cmdClear";
+            cmdClear.Size = new Size(75, 23);
+            cmdClear.TabIndex = 5;
+            cmdClear.Text = "Очистить";
+            cmdClear.UseVisualStyleBackColor = true;
+            cmdClear.Click += cmdClear_Click;
             // 
             // frmStructure
             // 
@@ -141,6 +203,8 @@
             AutoScaleMode = AutoScaleMode.Font;
             CancelButton = cmdClose;
             ClientSize = new Size(800, 450);
+            Controls.Add(cmdClear);
+            Controls.Add(cmdFill);
             Controls.Add(treeView1);
             Controls.Add(groupBox1);
             Controls.Add(cmdSave);
@@ -153,6 +217,7 @@
             Load += frmStructure_Load;
             groupBox1.ResumeLayout(false);
             splitContainer.Panel1.ResumeLayout(false);
+            splitContainer.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer).EndInit();
             splitContainer.ResumeLayout(false);
             contextMenuTreeView.ResumeLayout(false);
@@ -171,5 +236,12 @@
         private ToolStripMenuItem insertToolStripMenuItem;
         private ToolStripMenuItem updateToolStripMenuItem;
         private ToolStripMenuItem deleteToolStripMenuItem;
+        private ListView listView;
+        private ColumnHeader columnName;
+        private ColumnHeader columnType;
+        private ColumnHeader columnDescription;
+        private ColumnHeader columnInstr;
+        private Button cmdFill;
+        private Button cmdClear;
     }
 }

@@ -161,6 +161,16 @@ namespace SQLBuilder
                 .HasOne(d => d.Parent)
                 .WithMany(d => d.Children)
                 .HasForeignKey(d => d.ParentId);
+
+            modelBuilder.Entity<MSPDB_Params>()
+                .HasOne(p => p.Desc)
+                .WithOne(n => n.Params)
+                .HasForeignKey<MSPDB_Params_Desc>(n => n.id_param);
+
+            modelBuilder.Entity<MSPDB_Params>()
+                .HasOne(d => d.Instr)
+                .WithOne(p => p.Params)
+                .HasForeignKey<MSPDB_Params_Instr>(p => p.id_param);
         }
     }
 
