@@ -152,8 +152,12 @@ namespace SQLBuilder
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=helloappdb;Trusted_Connection=True;");
-            //optionsBuilder.UseSqlServer(@"Server=MSSQL02.TU-UGMK.COM\DB02;Database=helloappdb;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True");
+            // Локальная база
+			//optionsBuilder.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=helloappdb;Trusted_Connection=True;");
+            // Святогор
+			//optionsBuilder.UseSqlServer(@"Server=TU_UGMK1;Database=helloappdb;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True");
+            // ТУ УГМК
+			optionsBuilder.UseSqlServer(@"Server=MSSQL02\DB02;Database=helloappdb;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True");
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
