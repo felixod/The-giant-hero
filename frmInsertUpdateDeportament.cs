@@ -1,13 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using System.Xml;
+using System.Xml.Linq;
+
 
 namespace SQLBuilder
 {
@@ -15,6 +8,111 @@ namespace SQLBuilder
     {
         private int _itemId;
         private bool _insert;
+
+
+
+
+    public (string Name, string Prefix, string Code) GetAttributesById(string xmlFilePath, int nodeId)
+        {
+            XmlDocument doc = new();
+            doc.Load(xmlFilePath);
+
+            XmlNode node = doc.SelectSingleNode($"//Node[@Id='{nodeId.ToString()}']");
+
+            if (node != null)
+            {
+                string name = node.Attributes["Name"]?.InnerText;
+                string prefix = node.Attributes["Prefix"]?.InnerText;
+                string code = node.Attributes["Code"]?.InnerText;
+
+                return (name, prefix, code);
+            }
+
+            return (null, null, null);
+        }
+
+
+    public static int FindMaxIdAndIncrement(string xmlFilePath)
+        {
+
+            if (File.Exists(xmlFilePath))
+            {
+                XDocument xmlDoc = XDocument.Load(xmlFilePath);
+
+                // Находим максимальный Id среди всех элементов Node
+                int maxId = xmlDoc.Descendants("Node")
+                                  .Attributes("Id")
+                                  .Select(Id => (int)Id)
+                                  .Max();
+
+                // Увеличиваем максимальный Id на 1
+                return maxId + 1;
+            }
+            else
+            {
+                return 0;
+            }
+
+        }
+
+        public static void AddElementToParentById(string xmlFilePath, int parentId, string newName, string newPrefix, string newCode, int Id)
+        {
+            if (File.Exists(xmlFilePath))
+            {
+                XDocument xmlDoc = XDocument.Load(xmlFilePath);
+                // Находим родительский элемент с заданным id
+                #pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+                XElement parentElement = xmlDoc.Descendants("Node").FirstOrDefault(node => node.Attribute("Id")?.Value == parentId.ToString());
+                #pragma warning restore CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+
+                if (parentElement != null)
+                {
+                    // Создаем новый элемент
+                    XElement newElement = new("Node",
+                        new XAttribute("Name", newName),
+                        new XAttribute("Prefix", newPrefix),
+                        new XAttribute("Code", newCode),
+                        new XAttribute("Id", Id)
+                    );
+
+                    // Добавляем новый элемент к родительскому
+                    parentElement.Add(newElement);
+
+                    // Сохраняем изменения в XML файле
+                    xmlDoc.Save(xmlFilePath);
+                }
+            }
+
+                
+
+
+        }
+
+        public static void UpdateElementById(string xmlFilePath, int Id, string newName, string newPrefix, string newCode)
+        {
+            if (File.Exists(xmlFilePath))
+            {
+                XDocument xmlDoc = XDocument.Load(xmlFilePath);
+
+                // Находим элемент с заданным id
+                #pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+                XElement elementToUpdate = xmlDoc.Descendants("Node").FirstOrDefault(node => node.Attribute("Id")?.Value == Id.ToString());
+                #pragma warning restore CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+
+                if (elementToUpdate != null)
+                {
+                    // Обновляем атрибуты элемента
+                    elementToUpdate.SetAttributeValue("Name", newName);
+                    elementToUpdate.SetAttributeValue("Prefix", newPrefix);
+                    elementToUpdate.SetAttributeValue("Code", newCode);
+
+                    // Сохраняем изменения в XML файле
+                    xmlDoc.Save(xmlFilePath);
+                }
+            }
+
+        }
+
 
         public frmInsertUpdateDeportament(bool insert, int itemId)
         {
@@ -28,15 +126,10 @@ namespace SQLBuilder
             UpdateButton();
             if (!_insert)
             {
-                using ApplicationContext context = new();
-                var entityToUpdate = context.Departments.FirstOrDefault(p => p.Id == _itemId);
-                if (entityToUpdate != null)
-                {
-                    txtName.Text = entityToUpdate.Name;
-                    txtPrefix.Text = entityToUpdate.Prefix;
-                    txtCode.Text = entityToUpdate.Code;
-                    context.SaveChanges();
-                }
+                var result = GetAttributesById("departments.xml", _itemId);
+                txtName.Text = result.Name;
+                txtPrefix.Text = result.Prefix;
+                txtCode.Text = result.Code;
             }
         }
 
@@ -44,31 +137,19 @@ namespace SQLBuilder
         {
             if (_insert)
             {
-                using ApplicationContext context = new();
+                int newId = FindMaxIdAndIncrement("departments.xml");
                 if (_itemId == 0)
                 {
-                    var d = new Department { Name = txtName.Text, Prefix = txtPrefix.Text, Code = txtCode.Text };
-                    context.Departments.Add(d);
-                    context.SaveChanges();
+                    AddElementToParentById("departments.xml", _itemId, txtName.Text, txtPrefix.Text, txtCode.Text, newId);
                 }
                 else
                 {
-                    var d = new Department { Name = txtName.Text, Prefix = txtPrefix.Text, Code = txtCode.Text, ParentId = _itemId };
-                    context.Departments.Add(d);
-                    context.SaveChanges();
+                    AddElementToParentById("departments.xml", _itemId, txtName.Text, txtPrefix.Text, txtCode.Text, newId);
                 }
             }
             else
             {
-                using ApplicationContext context = new();
-                var entityToUpdate = context.Departments.FirstOrDefault(p => p.Id == _itemId);
-                if (entityToUpdate != null)
-                {
-                    entityToUpdate.Name = txtName.Text;
-                    entityToUpdate.Prefix = txtPrefix.Text;
-                    entityToUpdate.Code = txtCode.Text;
-                    context.SaveChanges();
-                }
+                UpdateElementById("departments.xml", _itemId, txtName.Text, txtPrefix.Text, txtCode.Text);
             }
 
             this.Close();
