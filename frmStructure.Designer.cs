@@ -33,22 +33,22 @@
 			cmdSave = new Button();
 			groupBox1 = new GroupBox();
 			splitContainer = new SplitContainer();
-			treeView = new TreeView();
 			contextMenuTreeView = new ContextMenuStrip(components);
 			insertToolStripMenuItem = new ToolStripMenuItem();
 			updateToolStripMenuItem = new ToolStripMenuItem();
 			deleteToolStripMenuItem = new ToolStripMenuItem();
-			listView = new ListView();
-			columnName = new ColumnHeader();
-			columnType = new ColumnHeader();
-			columnDescription = new ColumnHeader();
-			columnInstr = new ColumnHeader();
 			contextMenuListView = new ContextMenuStrip(components);
 			removeToolStripMenuItem = new ToolStripMenuItem();
 			treeView1 = new TreeView();
 			cmdFill = new Button();
 			cmdClear = new Button();
 			cmdImport = new Button();
+			columnName = new ColumnHeader();
+			columnType = new ColumnHeader();
+			columnDescription = new ColumnHeader();
+			columnInstr = new ColumnHeader();
+			listView = new ListView();
+			treeView = new TreeView();
 			groupBox1.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)splitContainer).BeginInit();
 			splitContainer.Panel1.SuspendLayout();
@@ -105,16 +105,6 @@
 			splitContainer.SplitterDistance = 256;
 			splitContainer.TabIndex = 0;
 			// 
-			// treeView
-			// 
-			treeView.ContextMenuStrip = contextMenuTreeView;
-			treeView.Dock = DockStyle.Fill;
-			treeView.Location = new Point(0, 0);
-			treeView.Name = "treeView";
-			treeView.Size = new Size(256, 375);
-			treeView.TabIndex = 0;
-			treeView.NodeMouseDoubleClick += treeView_NodeMouseDoubleClick;
-			// 
 			// contextMenuTreeView
 			// 
 			contextMenuTreeView.Items.AddRange(new ToolStripItem[] { insertToolStripMenuItem, updateToolStripMenuItem, deleteToolStripMenuItem });
@@ -142,37 +132,6 @@
 			deleteToolStripMenuItem.Size = new Size(128, 22);
 			deleteToolStripMenuItem.Text = "Удалить";
 			deleteToolStripMenuItem.Click += deleteToolStripMenuItem_Click;
-			// 
-			// listView
-			// 
-			listView.Columns.AddRange(new ColumnHeader[] { columnName, columnType, columnDescription, columnInstr });
-			listView.ContextMenuStrip = contextMenuListView;
-			listView.Dock = DockStyle.Fill;
-			listView.Location = new Point(0, 0);
-			listView.Name = "listView";
-			listView.Size = new Size(510, 375);
-			listView.TabIndex = 0;
-			listView.UseCompatibleStateImageBehavior = false;
-			listView.View = View.Details;
-			// 
-			// columnName
-			// 
-			columnName.Text = "Название";
-			columnName.Width = 200;
-			// 
-			// columnType
-			// 
-			columnType.Text = "Тип";
-			// 
-			// columnDescription
-			// 
-			columnDescription.Text = "Описание";
-			columnDescription.Width = 300;
-			// 
-			// columnInstr
-			// 
-			columnInstr.Text = "Формула";
-			columnInstr.Width = 200;
 			// 
 			// contextMenuListView
 			// 
@@ -224,6 +183,47 @@
 			cmdImport.UseVisualStyleBackColor = true;
 			cmdImport.Click += cmdImport_Click;
 			// 
+			// columnName
+			// 
+			columnName.Text = "Название";
+			columnName.Width = 200;
+			// 
+			// columnType
+			// 
+			columnType.Text = "Тип";
+			// 
+			// columnDescription
+			// 
+			columnDescription.Text = "Описание";
+			columnDescription.Width = 300;
+			// 
+			// columnInstr
+			// 
+			columnInstr.Text = "Формула";
+			columnInstr.Width = 200;
+			// 
+			// listView
+			// 
+			listView.Columns.AddRange(new ColumnHeader[] { columnName, columnType, columnDescription, columnInstr });
+			listView.ContextMenuStrip = contextMenuListView;
+			listView.Dock = DockStyle.Fill;
+			listView.Location = new Point(0, 0);
+			listView.Name = "listView";
+			listView.Size = new Size(510, 375);
+			listView.TabIndex = 0;
+			listView.UseCompatibleStateImageBehavior = false;
+			listView.View = View.Details;
+			// 
+			// treeView
+			// 
+			treeView.ContextMenuStrip = contextMenuTreeView;
+			treeView.Dock = DockStyle.Fill;
+			treeView.Location = new Point(0, 0);
+			treeView.Name = "treeView";
+			treeView.Size = new Size(256, 375);
+			treeView.TabIndex = 0;
+			treeView.NodeMouseDoubleClick += treeView_NodeMouseDoubleClick;
+			// 
 			// frmStructure
 			// 
 			AcceptButton = cmdSave;
@@ -260,21 +260,21 @@
         private Button cmdSave;
         private GroupBox groupBox1;
         private SplitContainer splitContainer;
-        private TreeView treeView;
         private TreeView treeView1;
         private ContextMenuStrip contextMenuTreeView;
         private ToolStripMenuItem insertToolStripMenuItem;
         private ToolStripMenuItem updateToolStripMenuItem;
         private ToolStripMenuItem deleteToolStripMenuItem;
-        private ListView listView;
-        private ColumnHeader columnName;
-        private ColumnHeader columnType;
-        private ColumnHeader columnDescription;
-        private ColumnHeader columnInstr;
         private Button cmdFill;
         private Button cmdClear;
         private ContextMenuStrip contextMenuListView;
         private ToolStripMenuItem removeToolStripMenuItem;
 		private Button cmdImport;
+		private TreeView treeView;
+		private ListView listView;
+		private ColumnHeader columnName;
+		private ColumnHeader columnType;
+		private ColumnHeader columnDescription;
+		private ColumnHeader columnInstr;
 	}
 }

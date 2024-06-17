@@ -31,9 +31,12 @@
 			cmdClose = new Button();
 			cmdOK = new Button();
 			groupBox = new GroupBox();
+			label2 = new Label();
+			txtDestinationString = new TextBox();
 			txtLog = new RichTextBox();
 			label1 = new Label();
 			txtConnectionString = new TextBox();
+			cmdImport = new Button();
 			groupBox.SuspendLayout();
 			SuspendLayout();
 			// 
@@ -57,6 +60,8 @@
 			// 
 			// groupBox
 			// 
+			groupBox.Controls.Add(label2);
+			groupBox.Controls.Add(txtDestinationString);
 			groupBox.Controls.Add(txtLog);
 			groupBox.Controls.Add(label1);
 			groupBox.Controls.Add(txtConnectionString);
@@ -67,14 +72,31 @@
 			groupBox.TabStop = false;
 			groupBox.Text = "Импорт данных из внешней базы данных";
 			// 
+			// label2
+			// 
+			label2.AutoSize = true;
+			label2.Location = new Point(6, 64);
+			label2.Name = "label2";
+			label2.Size = new Size(117, 15);
+			label2.TabIndex = 4;
+			label2.Text = "Сервер назначения:";
+			// 
+			// txtDestinationString
+			// 
+			txtDestinationString.Location = new Point(140, 61);
+			txtDestinationString.Name = "txtDestinationString";
+			txtDestinationString.Size = new Size(630, 23);
+			txtDestinationString.TabIndex = 3;
+			txtDestinationString.Text = "Server=TU_UGMK1;Database=helloappdb;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True";
+			// 
 			// txtLog
 			// 
 			txtLog.BackColor = SystemColors.Control;
 			txtLog.BorderStyle = BorderStyle.None;
-			txtLog.Location = new Point(6, 67);
+			txtLog.Location = new Point(6, 102);
 			txtLog.Name = "txtLog";
 			txtLog.ReadOnly = true;
-			txtLog.Size = new Size(764, 324);
+			txtLog.Size = new Size(764, 289);
 			txtLog.TabIndex = 2;
 			txtLog.Text = "";
 			// 
@@ -83,9 +105,9 @@
 			label1.AutoSize = true;
 			label1.Location = new Point(6, 35);
 			label1.Name = "label1";
-			label1.Size = new Size(128, 15);
+			label1.Size = new Size(105, 15);
 			label1.TabIndex = 1;
-			label1.Text = "Строка подключения:";
+			label1.Text = "Сервер источник:";
 			// 
 			// txtConnectionString
 			// 
@@ -93,6 +115,17 @@
 			txtConnectionString.Name = "txtConnectionString";
 			txtConnectionString.Size = new Size(630, 23);
 			txtConnectionString.TabIndex = 0;
+			txtConnectionString.Text = "Server=MINE;Database=MSCADA;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True";
+			// 
+			// cmdImport
+			// 
+			cmdImport.Location = new Point(551, 415);
+			cmdImport.Name = "cmdImport";
+			cmdImport.Size = new Size(75, 23);
+			cmdImport.TabIndex = 3;
+			cmdImport.Text = "Импорт";
+			cmdImport.UseVisualStyleBackColor = true;
+			cmdImport.Click += cmdImport_Click;
 			// 
 			// frmImport
 			// 
@@ -101,6 +134,7 @@
 			AutoScaleMode = AutoScaleMode.Font;
 			CancelButton = cmdClose;
 			ClientSize = new Size(800, 450);
+			Controls.Add(cmdImport);
 			Controls.Add(groupBox);
 			Controls.Add(cmdOK);
 			Controls.Add(cmdClose);
@@ -123,5 +157,8 @@
 		private RichTextBox txtLog;
 		private Label label1;
 		private TextBox txtConnectionString;
+		private Button cmdImport;
+		private Label label2;
+		private TextBox txtDestinationString;
 	}
 }
