@@ -69,9 +69,9 @@ namespace SQLBuilder
                 {
                     // Создаем новый элемент
                     XElement newElement = new("Node",
-                        new XAttribute("Name", newName),
-                        new XAttribute("Prefix", newPrefix),
-                        new XAttribute("Code", newCode),
+                        new XAttribute("Name", xmlHelper.RemoveInvalidXmlChars(newName)),
+                        new XAttribute("Prefix", xmlHelper.RemoveInvalidXmlChars(newPrefix)),
+                        new XAttribute("Code", xmlHelper.RemoveInvalidXmlChars(newCode)),
                         new XAttribute("Id", Id)
                     );
 
@@ -102,9 +102,9 @@ namespace SQLBuilder
                 if (elementToUpdate != null)
                 {
                     // Обновляем атрибуты элемента
-                    elementToUpdate.SetAttributeValue("Name", newName);
-                    elementToUpdate.SetAttributeValue("Prefix", newPrefix);
-                    elementToUpdate.SetAttributeValue("Code", newCode);
+                    elementToUpdate.SetAttributeValue("Name", xmlHelper.RemoveInvalidXmlChars(newName));
+                    elementToUpdate.SetAttributeValue("Prefix", xmlHelper.RemoveInvalidXmlChars(newPrefix));
+                    elementToUpdate.SetAttributeValue("Code", xmlHelper.RemoveInvalidXmlChars(newCode));
 
                     // Сохраняем изменения в XML файле
                     xmlDoc.Save(xmlFilePath);
