@@ -11,7 +11,7 @@ namespace SQLBuilder
 	{
 			public static string RemoveInvalidXmlChars(string input)
 			{
-				StringBuilder cleanedString = new StringBuilder();
+				StringBuilder cleanedString = new();
 
 				foreach (char c in input)
 				{
