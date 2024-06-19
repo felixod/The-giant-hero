@@ -1,11 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace SQLBuilder
 {
@@ -153,11 +146,11 @@ namespace SQLBuilder
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             // Локальная база
-			//optionsBuilder.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=helloappdb;Trusted_Connection=True;");
+            //optionsBuilder.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=helloappdb;Trusted_Connection=True;");
             // Святогор
-			//optionsBuilder.UseSqlServer(@"Server=TU_UGMK1;Database=helloappdb;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True");
+            //optionsBuilder.UseSqlServer(@"Server=TU_UGMK1;Database=helloappdb;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True");
             // ТУ УГМК
-			optionsBuilder.UseSqlServer(@"Server=MSSQL02\DB02;Database=helloappdb;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True");
+            optionsBuilder.UseSqlServer(@"Server=MSSQL02\DB02;Database=helloappdb;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True");
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

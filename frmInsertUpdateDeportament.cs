@@ -12,7 +12,7 @@ namespace SQLBuilder
 
 
 
-    public (string Name, string Prefix, string Code) GetAttributesById(string xmlFilePath, int nodeId)
+        public (string Name, string Prefix, string Code) GetAttributesById(string xmlFilePath, int nodeId)
         {
             XmlDocument doc = new();
             doc.Load(xmlFilePath);
@@ -32,7 +32,7 @@ namespace SQLBuilder
         }
 
 
-    public static int FindMaxIdAndIncrement(string xmlFilePath)
+        public static int FindMaxIdAndIncrement(string xmlFilePath)
         {
 
             if (File.Exists(xmlFilePath))
@@ -61,9 +61,9 @@ namespace SQLBuilder
             {
                 XDocument xmlDoc = XDocument.Load(xmlFilePath);
                 // Находим родительский элемент с заданным id
-                #pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+#pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
                 XElement parentElement = xmlDoc.Descendants("Node").FirstOrDefault(node => node.Attribute("Id")?.Value == parentId.ToString());
-                #pragma warning restore CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+#pragma warning restore CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
 
                 if (parentElement != null)
                 {
@@ -83,7 +83,7 @@ namespace SQLBuilder
                 }
             }
 
-                
+
 
 
         }
@@ -95,9 +95,9 @@ namespace SQLBuilder
                 XDocument xmlDoc = XDocument.Load(xmlFilePath);
 
                 // Находим элемент с заданным id
-                #pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+#pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
                 XElement elementToUpdate = xmlDoc.Descendants("Node").FirstOrDefault(node => node.Attribute("Id")?.Value == Id.ToString());
-                #pragma warning restore CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+#pragma warning restore CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
 
                 if (elementToUpdate != null)
                 {

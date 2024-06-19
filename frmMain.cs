@@ -1,37 +1,20 @@
 
 using Microsoft.Data.SqlClient;
+using SQLBuilder;
 using SQLBuilder.ini;
 using System.Data;
-using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
-using System;
-using System.Threading.Tasks;
-using System.Diagnostics.Eventing.Reader;
-using System.Data.Common;
-using System.IO;
-using System.Reflection.Metadata;
-using System.Windows.Forms;
-using System.Collections.Generic;
-using static SQLBuilder.frmMain;
-using static System.ComponentModel.Design.ObjectSelectorEditor;
 using System.Xml.Linq;
-using Microsoft.Identity.Client.NativeInterop;
-using static Azure.Core.HttpHeader;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using SQLBuilder;
 
 namespace SQLBuilder
 {
-
     public partial class frmMain : Form
     {
-
         public frmMain()
         {
             InitializeComponent();
         }
-
         private void frmMain_Load(object sender, EventArgs e)
         {
             rtbLog.Text = Log.Read();
@@ -449,11 +432,12 @@ namespace SQLBuilder
                 xmlDoc.Load(fileName);
                 TreeNode rootNode = CreateTreeNode(xmlDoc.DocumentElement);
                 treeView.Nodes.Add(rootNode);
-            } else 
+            }
+            else
             {
                 CreateEmptyXmlFile(fileName);
                 LoadTreeViewFromXml(treeView, fileName);
-            }   
+            }
         }
 
         private static void CreateEmptyXmlFile(string filePath)
@@ -461,7 +445,7 @@ namespace SQLBuilder
             XmlDocument doc = new();
             // Создание объявления XML
             XmlDeclaration? xmlDeclaration = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
-            XmlElement?root = doc.DocumentElement;
+            XmlElement? root = doc.DocumentElement;
             doc.InsertBefore(xmlDeclaration, root);
 
             // Создание корневого элемента
@@ -480,110 +464,110 @@ namespace SQLBuilder
         // Рекурсивный метод для создания TreeNode из XML узла
         private static TreeNode CreateTreeNode(XmlNode xmlNode)
         {
-			TreeNode treeNode = new();
-			if (xmlNode.Attributes != null && xmlNode.Name == "Node")
-				{
-					XmlAttribute? nameAttribute = xmlNode.Attributes["Name"];
-					if (nameAttribute != null)
-					{
-						treeNode.Name = nameAttribute.Value;
-						treeNode.Text = nameAttribute.Value; // Используем Name для свойства Text
-					}
-
-					XmlAttribute? codeAttribute = xmlNode.Attributes["Id"];
-					if (codeAttribute != null)
-					{
-						treeNode.Tag = int.Parse(codeAttribute.Value); // Сохраняем Id в Tag
-					}
-				}
-
-				foreach (XmlNode childNode in xmlNode.ChildNodes)
-				{
-					if (childNode.Name == "Node")
-					{
-						treeNode.Nodes.Add(CreateTreeNode(childNode)); // Рекурсивно добавляем дочерние узлы
-					}			
-				}
-				return treeNode;
-			}
-		}
-    }
-
-    public static class Reader
-    {
-        public static string ToCSV(this IDataReader dataReader, bool includeHeaderAsFirstRow = true, string separator = ",")
-        {
-            DataTable dataTable = new();
-            StringBuilder csvRows = new();
-            string row = "";
-            int columns;
-            try
+            TreeNode treeNode = new();
+            if (xmlNode.Attributes != null && xmlNode.Name == "Node")
             {
-                // Грузим в таблицу данные
-                dataTable.Load(dataReader);
-                // Получаем число столбцов
-                columns = dataTable.Columns.Count;
-                // Создаем заголовок
-                if (includeHeaderAsFirstRow)
+                XmlAttribute? nameAttribute = xmlNode.Attributes["Name"];
+                if (nameAttribute != null)
                 {
-                    for (int index = 0; index < columns; index++)
-                    {
-                        row += (dataTable.Columns[index]);
-                        if (index < columns - 1)
-                            row += separator;
-                    }
-                    // Добавляем разделитель (новая строка)
-                    row += Environment.NewLine;
+                    treeNode.Name = nameAttribute.Value;
+                    treeNode.Text = nameAttribute.Value; // Используем Name для свойства Text
                 }
-                // Добавляем строку
-                csvRows.Append(row);
 
-                // Создаем текстровую строку из строки данных
-                for (int rowIndex = 0; rowIndex < dataTable.Rows.Count; rowIndex++)
+                XmlAttribute? codeAttribute = xmlNode.Attributes["Id"];
+                if (codeAttribute != null)
                 {
-                    row = ""; // Очищаем переменную для новой строки
-                    for (int index = 0; index <= columns - 1; index++)
-                    {
-                        string value = dataTable.Rows[rowIndex][index].ToString();
-                        // Если тип столбца - строка
-                        if (dataTable.Rows[rowIndex][index] is string)
-                        {
-                            // Если в значении используются двойные кавычки, меняем каждый из них на двойные кавычки.
-                            if (value.Contains('"', StringComparison.CurrentCulture))
-                                value = value.Replace("\"", "\"\"");
-
-                            // Если в значении есть разделитель, окружаем его двойными кавычками.
-                            if (value.Contains(separator, StringComparison.CurrentCulture))
-                                value = "\"" + value + "\"";
-
-                            //Если строка содержит символы новой строки, удаляем их
-                            while (value.Contains('\r'))
-                            {
-                                value = value.Replace("\r", "");
-                            }
-                            while (value.Contains('\n'))
-                            {
-                                value = value.Replace("\n", "");
-                            }
-                        }
-                        row += value;
-                        // Добавляем разделитель
-                        if (index < columns - 1)
-                            row += separator;
-                    }
-                    // Удаляем разделитель после последнего столбца
-                    dataTable.Rows[rowIndex][columns - 1].ToString().ToString().Replace(separator, " ");
-                    row += Environment.NewLine;
-                    // Добавляем новую строку
-                    csvRows.Append(row);
+                    treeNode.Tag = int.Parse(codeAttribute.Value); // Сохраняем Id в Tag
                 }
             }
-            catch (Exception)
+
+            foreach (XmlNode childNode in xmlNode.ChildNodes)
             {
-                throw;
+                if (childNode.Name == "Node")
+                {
+                    treeNode.Nodes.Add(CreateTreeNode(childNode)); // Рекурсивно добавляем дочерние узлы
+                }
             }
-            Log.Write("Создание CSV-файла завершено.");
-            return csvRows.ToString();
+            return treeNode;
         }
     }
+}
+
+public static class Reader
+{
+    public static string ToCSV(this IDataReader dataReader, bool includeHeaderAsFirstRow = true, string separator = ",")
+    {
+        DataTable dataTable = new();
+        StringBuilder csvRows = new();
+        string row = "";
+        int columns;
+        try
+        {
+            // Грузим в таблицу данные
+            dataTable.Load(dataReader);
+            // Получаем число столбцов
+            columns = dataTable.Columns.Count;
+            // Создаем заголовок
+            if (includeHeaderAsFirstRow)
+            {
+                for (int index = 0; index < columns; index++)
+                {
+                    row += (dataTable.Columns[index]);
+                    if (index < columns - 1)
+                        row += separator;
+                }
+                // Добавляем разделитель (новая строка)
+                row += Environment.NewLine;
+            }
+            // Добавляем строку
+            csvRows.Append(row);
+
+            // Создаем текстровую строку из строки данных
+            for (int rowIndex = 0; rowIndex < dataTable.Rows.Count; rowIndex++)
+            {
+                row = ""; // Очищаем переменную для новой строки
+                for (int index = 0; index <= columns - 1; index++)
+                {
+                    string value = dataTable.Rows[rowIndex][index].ToString();
+                    // Если тип столбца - строка
+                    if (dataTable.Rows[rowIndex][index] is string)
+                    {
+                        // Если в значении используются двойные кавычки, меняем каждый из них на двойные кавычки.
+                        if (value.Contains('"', StringComparison.CurrentCulture))
+                            value = value.Replace("\"", "\"\"");
+
+                        // Если в значении есть разделитель, окружаем его двойными кавычками.
+                        if (value.Contains(separator, StringComparison.CurrentCulture))
+                            value = "\"" + value + "\"";
+
+                        //Если строка содержит символы новой строки, удаляем их
+                        while (value.Contains('\r'))
+                        {
+                            value = value.Replace("\r", "");
+                        }
+                        while (value.Contains('\n'))
+                        {
+                            value = value.Replace("\n", "");
+                        }
+                    }
+                    row += value;
+                    // Добавляем разделитель
+                    if (index < columns - 1)
+                        row += separator;
+                }
+                // Удаляем разделитель после последнего столбца
+                dataTable.Rows[rowIndex][columns - 1].ToString().ToString().Replace(separator, " ");
+                row += Environment.NewLine;
+                // Добавляем новую строку
+                csvRows.Append(row);
+            }
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+        Log.Write("Создание CSV-файла завершено.");
+        return csvRows.ToString();
+    }
+}
 
