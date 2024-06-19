@@ -314,7 +314,7 @@ namespace SQLBuilder
 
 					SqlCommand command = new(sqlQuery, connection)
 					{
-						CommandTimeout = 600000 // Установите значение в секундах
+						CommandTimeout = Int32.MaxValue // Установите значение в секундах
 					};
 					command.Parameters.AddWithValue("@selected_ids", selectedIds);
 					command.Parameters.AddWithValue("@start_date", Convert.ToDateTime(iniFile.ReadKey("INTERVAL", "Start_data")));
@@ -355,7 +355,7 @@ namespace SQLBuilder
 						worksheet.Cells["F1"].Value = "мин";
 
 						// Save Excel package to a file
-						string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "output.xlsx");
+						string filePath = "output.xlsx";
 						FileInfo excelFile = new(filePath);
 						excelPackage.SaveAs(excelFile);
 
