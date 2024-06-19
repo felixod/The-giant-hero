@@ -312,7 +312,10 @@ namespace SQLBuilder
 						sqlQuery = sr.ReadToEnd();
 					}
 
-					SqlCommand command = new(sqlQuery, connection);
+					SqlCommand command = new(sqlQuery, connection)
+					{
+						CommandTimeout = 600000 // Установите значение в секундах
+					};
 					command.Parameters.AddWithValue("@selected_ids", selectedIds);
 					command.Parameters.AddWithValue("@start_date", Convert.ToDateTime(iniFile.ReadKey("INTERVAL", "Start_data")));
 					command.Parameters.AddWithValue("@end_date", Convert.ToDateTime(iniFile.ReadKey("INTERVAL", "Final_data")));
