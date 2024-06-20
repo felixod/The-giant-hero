@@ -11,6 +11,8 @@
     <ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
     <StartupObject>SQLBuilder.Program</StartupObject>
     <UseWPF>False</UseWPF>
+    <AssemblyVersion></AssemblyVersion>
+    <FileVersion></FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

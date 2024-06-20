@@ -1,10 +1,8 @@
 
 using Microsoft.Data.SqlClient;
 using OfficeOpenXml;
-using SQLBuilder;
 using SQLBuilder.ini;
 using System.Data;
-using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -18,6 +16,7 @@ namespace SQLBuilder
 		}
 		private void frmMain_Load(object sender, EventArgs e)
 		{
+			lblVersion.Text = $"Версия: {Application.ProductVersion}";
 			rtbLog.Text = Log.Read();
 			Log.Separate();
 			Log.Write("Запуск приложения");
@@ -55,6 +54,11 @@ namespace SQLBuilder
 				txtSQLFileName.Text = iniFile.ReadKey("FILENAME", "SQL_File_Name");
 			else
 				txtSQLFileName.Text = "";
+			// Загружаем из INI-файла имя файлы с результатом работы
+			if (iniFile.KeyExists("FILENAME", "XLSX_File_Name"))
+				txtResultsFileName.Text = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
+			else
+				txtResultsFileName.Text = "";
 			// Загружаем из INI-файла название базы данных
 			if (iniFile.KeyExists("FILENAME", "SQL_DB_InitialCatalog"))
 				txtInitialCatalog.Text = iniFile.ReadKey("FILENAME", "SQL_DB_InitialCatalog");
@@ -231,6 +235,7 @@ namespace SQLBuilder
 			// TODO Тут что-то про объединение данных с прыдыдущими данными, пока непонятно
 			// Секция FILENAME
 			iniFile.WriteKey("FILENAME", "SQL_File_Name", txtSQLFileName.Text);
+			iniFile.WriteKey("FILENAME", "XLSX_File_Name", txtResultsFileName.Text);
 			iniFile.WriteKey("FILENAME", "SQL_DB_DataSource", txtDataSource.Text);
 			iniFile.WriteKey("FILENAME", "SQL_DB_UserID", txtUserID.Text);
 			byte[] key = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
@@ -258,10 +263,10 @@ namespace SQLBuilder
 		{
 			StreamReader reader = new(txtSQLFileName.Text);
 			string strSQL = reader.ReadToEnd();
-			 Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
+			Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
 			rtbLog.Text = Log.Read();
 
-			static void Main(string sDataSource, string sUserID, string sPassword, string sInitialCatalog, bool bIntegratedSecurity, bool bTrustServerCertificate, string strSQL)
+			async Task Main(string sDataSource, string sUserID, string sPassword, string sInitialCatalog, bool bIntegratedSecurity, bool bTrustServerCertificate, string strSQL)
 			{
 				SqlConnectionStringBuilder builder = new()
 				{
@@ -280,8 +285,7 @@ namespace SQLBuilder
 				using SqlConnection connection = new(builder.ConnectionString);
 				try
 				{
-					 connection.Open();
-
+					await connection.OpenAsync();
 
 					string xmlFilePath = "departments.xml";
 					string selectedIds = "";
@@ -290,7 +294,6 @@ namespace SQLBuilder
 					xmlDoc.Load(xmlFilePath);
 
 					XmlNodeList sensorNodes = xmlDoc.SelectNodes("//Sensor");
-
 					foreach (XmlNode sensorNode in sensorNodes)
 					{
 						string sensorId = sensorNode.Attributes["Id"].Value;
@@ -304,7 +307,6 @@ namespace SQLBuilder
 					}
 
 					string sqlQuery;
-
 					// Read SQL query from file
 					IniFile iniFile = new("config.ini");
 					using (StreamReader sr = new(iniFile.ReadKey("FILENAME", "SQL_File_Name")))
@@ -322,7 +324,15 @@ namespace SQLBuilder
 
 					SqlDataAdapter adapter = new(command);
 					DataTable dataTable = new();
+
+					// Подписываемся на событие RowsUpdated
+					adapter.RowUpdated += Adapter_RowsUpdated;
+
+					// Заполняем DataTable
 					adapter.Fill(dataTable);
+
+					// Отписываемся от события RowsUpdated
+					adapter.RowUpdated -= Adapter_RowsUpdated;
 
 					// Set the LicenseContext
 					ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -331,12 +341,10 @@ namespace SQLBuilder
 					using (ExcelPackage excelPackage = new())
 					{
 						ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add("Sheet1");
-
 						// Load data from DataTable to Excel worksheet
 						worksheet.Cells["A1"].LoadFromDataTable(dataTable, true);
-						worksheet.Column(1).Style.Numberformat.Format = "dd.mm.yyyy HH:mm";					
+						worksheet.Column(1).Style.Numberformat.Format = "dd.mm.yyyy HH:mm";
 						worksheet.Row(1).Height = 75;
-
 						// Установка выравнивания текста по центру и включение переноса текста
 						worksheet.Row(1).Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
 						worksheet.Row(1).Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
@@ -355,7 +363,7 @@ namespace SQLBuilder
 						worksheet.Cells["F1"].Value = "мин";
 
 						// Save Excel package to a file
-						string filePath = "output.xlsx";
+						string filePath = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
 						FileInfo excelFile = new(filePath);
 						excelPackage.SaveAs(excelFile);
 
@@ -382,28 +390,28 @@ namespace SQLBuilder
 
 						// Переименование столбцов на основе кодов sensor и их названий
 						for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+						{
+							string header = worksheet.Cells[1, col].Text;
+							if (header.StartsWith("S") && sensorNames.ContainsKey(header.Substring(1)))
 							{
-								string header = worksheet.Cells[1, col].Text;
-								if (header.StartsWith("S") && sensorNames.ContainsKey(header.Substring(1)))
+								worksheet.Cells[1, col].Value = sensorNames[header.Substring(1)];
+								int prefix;
+								string sprefix = sensorPrefix[header.Substring(1)];
+								if (int.TryParse(sprefix, out prefix))
 								{
-									worksheet.Cells[1, col].Value = sensorNames[header.Substring(1)];
-									int prefix;
-									string sprefix = sensorPrefix[header.Substring(1)];
-									if (int.TryParse(sprefix, out prefix))
-									{
-										worksheet.Cells[3, col].Value = prefix;
-									} 
-									else
-									{
-										worksheet.Cells[3, col].Value = 0;
-									}	
+									worksheet.Cells[3, col].Value = prefix;
+								}
+								else
+								{
+									worksheet.Cells[3, col].Value = 0;
 								}
 							}
+						}
 
 						// Добавление второй строки с счетчиком столбов
 						for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
 						{
-							worksheet.Cells[2, col].Value = col-1; // Устанавливаем значение счетчика столбов
+							worksheet.Cells[2, col].Value = col - 1; // Устанавливаем значение счетчика столбов
 						}
 						worksheet.Cells["A2"].Style.Numberformat.Format = "@";
 
@@ -426,7 +434,7 @@ namespace SQLBuilder
 
 						// Сохранение изменений в Excel файл
 						excelPackage.Save();
-						}
+					}
 
 					Log.Write("Выгрузка успешно завершена.");
 					MessageBox.Show("Выгрузка успешно завершена");
@@ -438,6 +446,18 @@ namespace SQLBuilder
 				}
 			}
 		}
+
+		private static void Adapter_RowsUpdated(object sender, SqlRowUpdatedEventArgs e)
+		{
+			// Получаем количество обновленных строк
+			int updatedRows = e.RecordsAffected;
+
+			Log.Write($"Обработано {updatedRows} строк.");
+
+			// Выводим информацию о прогрессе
+			Console.WriteLine($"Обработано {updatedRows} строк.");
+		}
+
 
 		private void chkIntegratedSecurity_CheckedChanged(object sender, EventArgs e)
 		{
@@ -587,76 +607,89 @@ namespace SQLBuilder
 			}
 			LoadSensors();
 		}
+
+		private void cmdResultsFileName_Click(object sender, EventArgs e)
+		{
+			ofdResultsFileName.Title = "Пожалуйста выберите файл Microsoft Excel";
+			ofdResultsFileName.InitialDirectory = @"C:\";
+			ofdResultsFileName.Filter = "Файлы Microsoft Excel|*.xlsx";
+			ofdResultsFileName.InitialDirectory = Application.StartupPath;
+			if (!string.IsNullOrEmpty(txtResultsFileName.Text))
+				ofdResultsFileName.FileName = txtResultsFileName.Text;
+			if (ofdResultsFileName.ShowDialog() == DialogResult.OK)
+				Log.Write(string.Concat("Выбран файл Microsoft Excel для хранения результатов работы: ", ofdResultsFileName.FileName));
+			txtResultsFileName.Text = ofdResultsFileName.FileName;
+		}
 	}
 
 	public class TreeViewXmlLoader
-    {
-        // Метод для загрузки TreeView из XML
-        public static void LoadTreeViewFromXml(System.Windows.Forms.TreeView treeView, string fileName)
-        {
-            XmlDocument xmlDoc = new();
-            if (File.Exists(fileName))
-            {
-                xmlDoc.Load(fileName);
-                TreeNode rootNode = CreateTreeNode(xmlDoc.DocumentElement);
-                treeView.Nodes.Add(rootNode);
-            }
-            else
-            {
-                CreateEmptyXmlFile(fileName);
-                LoadTreeViewFromXml(treeView, fileName);
-            }
-        }
+	{
+		// Метод для загрузки TreeView из XML
+		public static void LoadTreeViewFromXml(System.Windows.Forms.TreeView treeView, string fileName)
+		{
+			XmlDocument xmlDoc = new();
+			if (File.Exists(fileName))
+			{
+				xmlDoc.Load(fileName);
+				TreeNode rootNode = CreateTreeNode(xmlDoc.DocumentElement);
+				treeView.Nodes.Add(rootNode);
+			}
+			else
+			{
+				CreateEmptyXmlFile(fileName);
+				LoadTreeViewFromXml(treeView, fileName);
+			}
+		}
 
-        private static void CreateEmptyXmlFile(string filePath)
-        {
-            XmlDocument doc = new();
-            // Создание объявления XML
-            XmlDeclaration? xmlDeclaration = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
-            XmlElement? root = doc.DocumentElement;
-            doc.InsertBefore(xmlDeclaration, root);
+		private static void CreateEmptyXmlFile(string filePath)
+		{
+			XmlDocument doc = new();
+			// Создание объявления XML
+			XmlDeclaration? xmlDeclaration = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
+			XmlElement? root = doc.DocumentElement;
+			doc.InsertBefore(xmlDeclaration, root);
 
-            // Создание корневого элемента
-            XmlElement rootElement = doc.CreateElement("Node");
-            rootElement.SetAttribute("Name", "Святогор");
-            rootElement.SetAttribute("Prefix", "");
-            rootElement.SetAttribute("Id", "0");
-            rootElement.SetAttribute("Code", "");
+			// Создание корневого элемента
+			XmlElement rootElement = doc.CreateElement("Node");
+			rootElement.SetAttribute("Name", "Святогор");
+			rootElement.SetAttribute("Prefix", "");
+			rootElement.SetAttribute("Id", "0");
+			rootElement.SetAttribute("Code", "");
 
-            doc.AppendChild(rootElement);
+			doc.AppendChild(rootElement);
 
-            // Сохранение файла
-            doc.Save(filePath);
-        }
+			// Сохранение файла
+			doc.Save(filePath);
+		}
 
-        // Рекурсивный метод для создания TreeNode из XML узла
-        private static TreeNode CreateTreeNode(XmlNode xmlNode)
-        {
-            TreeNode treeNode = new();
-            if (xmlNode.Attributes != null && xmlNode.Name == "Node")
-            {
-                XmlAttribute? nameAttribute = xmlNode.Attributes["Name"];
-                if (nameAttribute != null)
-                {
-                    treeNode.Name = nameAttribute.Value;
-                    treeNode.Text = nameAttribute.Value; // Используем Name для свойства Text
-                }
+		// Рекурсивный метод для создания TreeNode из XML узла
+		private static TreeNode CreateTreeNode(XmlNode xmlNode)
+		{
+			TreeNode treeNode = new();
+			if (xmlNode.Attributes != null && xmlNode.Name == "Node")
+			{
+				XmlAttribute? nameAttribute = xmlNode.Attributes["Name"];
+				if (nameAttribute != null)
+				{
+					treeNode.Name = nameAttribute.Value;
+					treeNode.Text = nameAttribute.Value; // Используем Name для свойства Text
+				}
 
-                XmlAttribute? codeAttribute = xmlNode.Attributes["Id"];
-                if (codeAttribute != null)
-                {
-                    treeNode.Tag = int.Parse(codeAttribute.Value); // Сохраняем Id в Tag
-                }
-            }
+				XmlAttribute? codeAttribute = xmlNode.Attributes["Id"];
+				if (codeAttribute != null)
+				{
+					treeNode.Tag = int.Parse(codeAttribute.Value); // Сохраняем Id в Tag
+				}
+			}
 
-            foreach (XmlNode childNode in xmlNode.ChildNodes)
-            {
-                if (childNode.Name == "Node")
-                {
-                    treeNode.Nodes.Add(CreateTreeNode(childNode)); // Рекурсивно добавляем дочерние узлы
-                }
-            }
-            return treeNode;
-        }
-    }
+			foreach (XmlNode childNode in xmlNode.ChildNodes)
+			{
+				if (childNode.Name == "Node")
+				{
+					treeNode.Nodes.Add(CreateTreeNode(childNode)); // Рекурсивно добавляем дочерние узлы
+				}
+			}
+			return treeNode;
+		}
+	}
 }

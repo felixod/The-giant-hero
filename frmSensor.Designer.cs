@@ -162,8 +162,6 @@
 		internal TextBox txtFind;
 		internal Label lblSQLFileName;
 		internal GroupBox gpbFileName;
-		private CheckBox chkTrustServerCertificate;
-		private CheckBox chkIntegratedSecurity;
 		internal TextBox txtUserID;
 		internal Label lblUserID;
 		internal TextBox txtDataSource;

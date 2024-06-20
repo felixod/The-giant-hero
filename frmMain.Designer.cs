@@ -68,6 +68,9 @@
 			lblInterval = new Label();
 			tpgFileName = new TabPage();
 			gpbFileName = new GroupBox();
+			cmdResultsFileName = new Button();
+			txtResultsFileName = new TextBox();
+			lblResultsFileName = new Label();
 			chkTrustServerCertificate = new CheckBox();
 			chkIntegratedSecurity = new CheckBox();
 			txtUserID = new TextBox();
@@ -86,6 +89,8 @@
 			rtbLog = new RichTextBox();
 			ofdSQLFileName = new OpenFileDialog();
 			cmdApply = new Button();
+			lblVersion = new Label();
+			ofdResultsFileName = new OpenFileDialog();
 			tabMain.SuspendLayout();
 			tpgSKADA.SuspendLayout();
 			groupBox1.SuspendLayout();
@@ -451,6 +456,9 @@
 			// 
 			// gpbFileName
 			// 
+			gpbFileName.Controls.Add(cmdResultsFileName);
+			gpbFileName.Controls.Add(txtResultsFileName);
+			gpbFileName.Controls.Add(lblResultsFileName);
 			gpbFileName.Controls.Add(chkTrustServerCertificate);
 			gpbFileName.Controls.Add(chkIntegratedSecurity);
 			gpbFileName.Controls.Add(txtUserID);
@@ -471,10 +479,36 @@
 			gpbFileName.TabStop = false;
 			gpbFileName.Text = "Имя файла запроса";
 			// 
+			// cmdResultsFileName
+			// 
+			cmdResultsFileName.Location = new Point(502, 53);
+			cmdResultsFileName.Name = "cmdResultsFileName";
+			cmdResultsFileName.Size = new Size(75, 23);
+			cmdResultsFileName.TabIndex = 20;
+			cmdResultsFileName.Text = "Открыть";
+			cmdResultsFileName.UseVisualStyleBackColor = true;
+			cmdResultsFileName.Click += cmdResultsFileName_Click;
+			// 
+			// txtResultsFileName
+			// 
+			txtResultsFileName.Location = new Point(168, 53);
+			txtResultsFileName.Name = "txtResultsFileName";
+			txtResultsFileName.Size = new Size(328, 23);
+			txtResultsFileName.TabIndex = 19;
+			// 
+			// lblResultsFileName
+			// 
+			lblResultsFileName.AutoSize = true;
+			lblResultsFileName.Location = new Point(6, 57);
+			lblResultsFileName.Name = "lblResultsFileName";
+			lblResultsFileName.Size = new Size(156, 15);
+			lblResultsFileName.TabIndex = 18;
+			lblResultsFileName.Text = "Имя файла для результата:";
+			// 
 			// chkTrustServerCertificate
 			// 
 			chkTrustServerCertificate.AutoSize = true;
-			chkTrustServerCertificate.Location = new Point(6, 201);
+			chkTrustServerCertificate.Location = new Point(6, 235);
 			chkTrustServerCertificate.Name = "chkTrustServerCertificate";
 			chkTrustServerCertificate.Size = new Size(197, 19);
 			chkTrustServerCertificate.TabIndex = 17;
@@ -484,7 +518,7 @@
 			// chkIntegratedSecurity
 			// 
 			chkIntegratedSecurity.AutoSize = true;
-			chkIntegratedSecurity.Location = new Point(6, 176);
+			chkIntegratedSecurity.Location = new Point(6, 210);
 			chkIntegratedSecurity.Name = "chkIntegratedSecurity";
 			chkIntegratedSecurity.Size = new Size(168, 19);
 			chkIntegratedSecurity.TabIndex = 16;
@@ -494,7 +528,7 @@
 			// 
 			// txtUserID
 			// 
-			txtUserID.Location = new Point(120, 111);
+			txtUserID.Location = new Point(120, 145);
 			txtUserID.MaxLength = 128;
 			txtUserID.Name = "txtUserID";
 			txtUserID.Size = new Size(376, 23);
@@ -504,7 +538,7 @@
 			// lblUserID
 			// 
 			lblUserID.AutoSize = true;
-			lblUserID.Location = new Point(6, 115);
+			lblUserID.Location = new Point(6, 149);
 			lblUserID.Name = "lblUserID";
 			lblUserID.Size = new Size(87, 15);
 			lblUserID.TabIndex = 14;
@@ -512,7 +546,7 @@
 			// 
 			// txtDataSource
 			// 
-			txtDataSource.Location = new Point(120, 53);
+			txtDataSource.Location = new Point(120, 87);
 			txtDataSource.MaxLength = 128;
 			txtDataSource.Name = "txtDataSource";
 			txtDataSource.Size = new Size(376, 23);
@@ -522,7 +556,7 @@
 			// lblDataSource
 			// 
 			lblDataSource.AutoSize = true;
-			lblDataSource.Location = new Point(6, 57);
+			lblDataSource.Location = new Point(6, 91);
 			lblDataSource.Name = "lblDataSource";
 			lblDataSource.Size = new Size(50, 15);
 			lblDataSource.TabIndex = 12;
@@ -530,7 +564,7 @@
 			// 
 			// txtSQLDBPass
 			// 
-			txtSQLDBPass.Location = new Point(120, 140);
+			txtSQLDBPass.Location = new Point(120, 174);
 			txtSQLDBPass.MaxLength = 128;
 			txtSQLDBPass.Name = "txtSQLDBPass";
 			txtSQLDBPass.PasswordChar = '*';
@@ -542,7 +576,7 @@
 			// lblSQLDBPass
 			// 
 			lblSQLDBPass.AutoSize = true;
-			lblSQLDBPass.Location = new Point(6, 144);
+			lblSQLDBPass.Location = new Point(6, 178);
 			lblSQLDBPass.Name = "lblSQLDBPass";
 			lblSQLDBPass.Size = new Size(52, 15);
 			lblSQLDBPass.TabIndex = 10;
@@ -550,7 +584,7 @@
 			// 
 			// txtInitialCatalog
 			// 
-			txtInitialCatalog.Location = new Point(120, 82);
+			txtInitialCatalog.Location = new Point(120, 116);
 			txtInitialCatalog.MaxLength = 255;
 			txtInitialCatalog.Name = "txtInitialCatalog";
 			txtInitialCatalog.Size = new Size(376, 23);
@@ -559,7 +593,7 @@
 			// lblInitialCatalog
 			// 
 			lblInitialCatalog.AutoSize = true;
-			lblInitialCatalog.Location = new Point(6, 86);
+			lblInitialCatalog.Location = new Point(6, 120);
 			lblInitialCatalog.Name = "lblInitialCatalog";
 			lblInitialCatalog.Size = new Size(80, 15);
 			lblInitialCatalog.TabIndex = 8;
@@ -637,12 +671,27 @@
 			cmdApply.UseVisualStyleBackColor = true;
 			cmdApply.Click += cmdApply_Click;
 			// 
+			// lblVersion
+			// 
+			lblVersion.AutoSize = true;
+			lblVersion.Location = new Point(22, 457);
+			lblVersion.Name = "lblVersion";
+			lblVersion.Size = new Size(49, 15);
+			lblVersion.TabIndex = 21;
+			lblVersion.Text = "Версия:";
+			// 
+			// ofdResultsFileName
+			// 
+			ofdResultsFileName.CheckFileExists = false;
+			ofdResultsFileName.FileName = "Новый запрос";
+			// 
 			// frmMain
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
 			AutoScaleMode = AutoScaleMode.Font;
 			CancelButton = cmdClose;
 			ClientSize = new Size(1024, 486);
+			Controls.Add(lblVersion);
 			Controls.Add(cmdApply);
 			Controls.Add(tabMain);
 			Controls.Add(cmdExport);
@@ -675,6 +724,7 @@
 			tpgLog.ResumeLayout(false);
 			gpbLog.ResumeLayout(false);
 			ResumeLayout(false);
+			PerformLayout();
 		}
 
 		#endregion
@@ -736,5 +786,10 @@
 		private ToolStripMenuItem toolStripMenuItem2;
 		private ToolStripMenuItem toolStripMenuItem3;
 		internal Button cmdApply;
+		internal Button cmdResultsFileName;
+		internal TextBox txtResultsFileName;
+		internal Label lblResultsFileName;
+		internal Label lblVersion;
+		internal OpenFileDialog ofdResultsFileName;
 	}
 }
