@@ -344,6 +344,7 @@ namespace SQLBuilder
 					adapter.RowUpdated += Adapter_RowUpdated;
 
 					//Stopwatch stopwatch = new();
+					stopwatch.Reset();
 					stopwatch.Start();
 
 					timer = new System.Windows.Forms.Timer
