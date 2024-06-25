@@ -1,5 +1,6 @@
 
 using Microsoft.Data.SqlClient;
+using System.Threading.Tasks;
 using OfficeOpenXml;
 using SQLBuilder.ini;
 using System.Data;
@@ -325,14 +326,22 @@ namespace SQLBuilder
 					SqlDataAdapter adapter = new(command);
 					DataTable dataTable = new();
 
+
+					Log.Write("Начинаем выполнение запроса. Ожидайте, запрос может выполняться ОЧЕНЬ продолжительное время.");
+					rtbLog.Text = Log.Read();
+					int i = tabMain.SelectedIndex;
+					tabMain.SelectedIndex = 4;
 					// Подписываемся на событие RowsUpdated
-					adapter.RowUpdated += Adapter_RowsUpdated;
+					adapter.RowUpdated += (s, e) => Adapter_RowUpdated(e, dataTable.Rows.Count);
 
 					// Заполняем DataTable
-					adapter.Fill(dataTable);
+					await Task.Run(() => adapter.Fill(dataTable));
 
 					// Отписываемся от события RowsUpdated
-					adapter.RowUpdated -= Adapter_RowsUpdated;
+					adapter.RowUpdated -= (s, e) => Adapter_RowUpdated(e, dataTable.Rows.Count);
+					Log.Write("Запрос успешно выполнен. Начинаем формировать выходную таблицу.");
+					rtbLog.Text = Log.Read();
+					tabMain.SelectedIndex = i;
 
 					// Set the LicenseContext
 					ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -447,12 +456,13 @@ namespace SQLBuilder
 			}
 		}
 
-		private static void Adapter_RowsUpdated(object sender, SqlRowUpdatedEventArgs e)
+		private void Adapter_RowUpdated(SqlRowUpdatedEventArgs e, int totalRows)
 		{
 			// Получаем количество обновленных строк
 			int updatedRows = e.RecordsAffected;
 
-			Log.Write($"Обработано {updatedRows} строк.");
+			Log.Write($"Обработано {updatedRows} из {totalRows} строк.");
+			rtbLog.Text = Log.Read();
 
 			// Выводим информацию о прогрессе
 			Console.WriteLine($"Обработано {updatedRows} строк.");
