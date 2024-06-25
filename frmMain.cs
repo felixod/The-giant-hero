@@ -6,11 +6,16 @@ using SQLBuilder.ini;
 using System.Data;
 using System.Xml;
 using System.Xml.Linq;
+using System.Windows.Forms;
+using System.Diagnostics;
 
 namespace SQLBuilder
 {
 	public partial class frmMain : Form
 	{
+		private Stopwatch stopwatch = new();
+		private System.Windows.Forms.Timer timer;
+
 		public frmMain()
 		{
 			InitializeComponent();
@@ -94,6 +99,7 @@ namespace SQLBuilder
 
 			LoadDepartments();
 			Log.Write("Загрузка параметров из ini-файла завершена");
+			TextBoxRead();
 		}
 
 
@@ -269,6 +275,9 @@ namespace SQLBuilder
 
 			async Task Main(string sDataSource, string sUserID, string sPassword, string sInitialCatalog, bool bIntegratedSecurity, bool bTrustServerCertificate, string strSQL)
 			{
+
+				cmdExport.Enabled = false;
+
 				SqlConnectionStringBuilder builder = new()
 				{
 					DataSource = sDataSource,
@@ -328,19 +337,36 @@ namespace SQLBuilder
 
 
 					Log.Write("Начинаем выполнение запроса. Ожидайте, запрос может выполняться ОЧЕНЬ продолжительное время.");
-					rtbLog.Text = Log.Read();
+					TextBoxRead();
 					int i = tabMain.SelectedIndex;
 					tabMain.SelectedIndex = 4;
 					// Подписываемся на событие RowsUpdated
-					adapter.RowUpdated += (s, e) => Adapter_RowUpdated(e, dataTable.Rows.Count);
+					adapter.RowUpdated += Adapter_RowUpdated;
+
+					//Stopwatch stopwatch = new();
+					stopwatch.Start();
+
+					timer = new System.Windows.Forms.Timer
+					{
+						Interval = 5000 // 5 секунд
+					};
+					timer.Tick += Timer_Tick;
+					timer.Start();
 
 					// Заполняем DataTable
 					await Task.Run(() => adapter.Fill(dataTable));
 
+					stopwatch.Stop();
+
+					timer.Stop();
+					TimeSpan elapsedTime = stopwatch.Elapsed;
+
+					Log.Write($"Время выполнения запроса: {elapsedTime.TotalSeconds} секунд");
+					TextBoxRead();
+
 					// Отписываемся от события RowsUpdated
-					adapter.RowUpdated -= (s, e) => Adapter_RowUpdated(e, dataTable.Rows.Count);
-					Log.Write("Запрос успешно выполнен. Начинаем формировать выходную таблицу.");
-					rtbLog.Text = Log.Read();
+					adapter.RowUpdated -= Adapter_RowUpdated;
+					
 					tabMain.SelectedIndex = i;
 
 					// Set the LicenseContext
@@ -446,7 +472,9 @@ namespace SQLBuilder
 					}
 
 					Log.Write("Выгрузка успешно завершена.");
+					TextBoxRead();
 					MessageBox.Show("Выгрузка успешно завершена");
+					cmdExport.Enabled = true;
 				}
 				catch (SqlException e)
 				{
@@ -456,13 +484,35 @@ namespace SQLBuilder
 			}
 		}
 
-		private void Adapter_RowUpdated(SqlRowUpdatedEventArgs e, int totalRows)
+		private void Timer_Tick(object sender, EventArgs e)
+		{
+			TimeSpan elapsedTime = stopwatch.Elapsed;
+			UpdateTimeLabel(elapsedTime.TotalSeconds.ToString("F2")); // Обновляем метку на форме
+		}
+
+		private void UpdateTimeLabel(string time)
+		{
+			// Обновляем метку на форме
+			Log.Write($"Время выполнения: {time} секунд");
+			TextBoxRead();
+		}
+
+		private void TextBoxRead()
+		{
+			rtbLog.Text = Log.Read();
+			rtbLog.SelectionStart = rtbLog.Text.Length;
+			rtbLog.ScrollToCaret();
+		}
+
+		private void Adapter_RowUpdated(object sender, SqlRowUpdatedEventArgs e)
 		{
 			// Получаем количество обновленных строк
 			int updatedRows = e.RecordsAffected;
 
-			Log.Write($"Обработано {updatedRows} из {totalRows} строк.");
+			Log.Write($"Обработано {updatedRows} строк.");
 			rtbLog.Text = Log.Read();
+			rtbLog.SelectionStart = rtbLog.Text.Length;
+			rtbLog.ScrollToCaret();
 
 			// Выводим информацию о прогрессе
 			Console.WriteLine($"Обработано {updatedRows} строк.");
