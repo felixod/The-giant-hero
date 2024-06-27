@@ -11,6 +11,8 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using OfficeOpenXml.Utils;
+using System.Security.Permissions;
+using System.Security.Principal;
 
 namespace SQLBuilder
 {
@@ -723,43 +725,56 @@ namespace SQLBuilder
 
 		private void cmdTasks_Click(object sender, EventArgs e)
 		{
-			// Путь к исполняемому файлу, который нужно запускать
-			string exePath = System.Windows.Forms.Application.ExecutablePath + " /s";
-			string workingDirectory = Environment.CurrentDirectory;
 
-			// Получаем выбранный день недели
-			int dayOfWeek = (int)nudExecPeriod.Value;
-
-			string arguments = $"/CREATE /TN \"SCADAExport\" /TR \"{exePath}\" /SC WEEKLY /D {GetDayOfWeekString(dayOfWeek)} /ST {dtpExecTime.Value:HH:mm}";
-
-			DeleteTasks("SCADAExport");
-
-			// Создаем объект ProcessStartInfo
-			ProcessStartInfo startInfo = new()
+			WindowsIdentity identity = WindowsIdentity.GetCurrent();
+			WindowsPrincipal principal = new WindowsPrincipal(identity);
+			if (principal.IsInRole(WindowsBuiltInRole.Administrator))
 			{
-				FileName = "schtasks.exe",
-				Arguments = arguments,
-				UseShellExecute = false,
-				RedirectStandardOutput = true,
-				RedirectStandardError = true,
-				WorkingDirectory = workingDirectory
-			};
+				// Выполните код, требующий прав администратора
+				// Путь к исполняемому файлу, который нужно запускать
+				string exePath = System.Windows.Forms.Application.ExecutablePath + " /s";
 
-			// Запускаем процесс
-			using Process process = Process.Start(startInfo);
-			// Читаем вывод процесса
-			string output = process.StandardOutput.ReadToEnd();
-			string error = process.StandardError.ReadToEnd();
+				// Получаем выбранный день недели
+				int dayOfWeek = (int)nudExecPeriod.Value;
 
-			// Проверяем результат
-			if (process.ExitCode == 0)
-			{
-				Console.WriteLine("Задание успешно создано в планировщике.");
+				string arguments = $"/CREATE /TN \"SCADAExport\" /RU \"SYSTEM\" /TR \"{exePath}\" /SC WEEKLY /D {GetDayOfWeekString(dayOfWeek)} /ST {dtpExecTime.Value:HH:mm}";
+
+				DeleteTasks("SCADAExport");
+
+				// Создаем объект ProcessStartInfo
+				ProcessStartInfo startInfo = new()
+				{
+					FileName = "schtasks.exe",
+					Arguments = arguments,
+					UseShellExecute = false,
+					RedirectStandardOutput = true,
+					RedirectStandardError = true,
+					Verb = "runas"
+				};
+
+				// Запускаем процесс
+				using Process process = Process.Start(startInfo);
+				// Читаем вывод процесса
+				string output = process.StandardOutput.ReadToEnd();
+				string error = process.StandardError.ReadToEnd();
+
+				// Проверяем результат
+				if (process.ExitCode == 0)
+				{
+					Console.WriteLine("Задание успешно создано в планировщике.");
+				}
+				else
+				{
+					Console.WriteLine($"Ошибка при создании задания: {error}");
+				}
 			}
 			else
 			{
-				Console.WriteLine($"Ошибка при создании задания: {error}");
+				// Пользователь не является администратором
+				MessageBox.Show("Запустите приложение с правами администратора.");
 			}
+
+			
 		}
 
 		static string GetDayOfWeekString(int dayOfWeek)
