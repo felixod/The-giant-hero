@@ -51,6 +51,7 @@
 			toolStripMenuItem3 = new ToolStripMenuItem();
 			tpgSchedule = new TabPage();
 			gbxSchedule = new GroupBox();
+			cmdTasks = new Button();
 			nudExecPeriod = new NumericUpDown();
 			lblDay = new Label();
 			lblExecPeriod = new Label();
@@ -68,6 +69,7 @@
 			lblInterval = new Label();
 			tpgFileName = new TabPage();
 			gpbFileName = new GroupBox();
+			chkResultsFileNameAddDate = new CheckBox();
 			cmdResultsFileName = new Button();
 			txtResultsFileName = new TextBox();
 			lblResultsFileName = new Label();
@@ -293,6 +295,7 @@
 			// 
 			// gbxSchedule
 			// 
+			gbxSchedule.Controls.Add(cmdTasks);
 			gbxSchedule.Controls.Add(nudExecPeriod);
 			gbxSchedule.Controls.Add(lblDay);
 			gbxSchedule.Controls.Add(lblExecPeriod);
@@ -308,13 +311,25 @@
 			gbxSchedule.TabStop = false;
 			gbxSchedule.Text = "Расписание *";
 			// 
+			// cmdTasks
+			// 
+			cmdTasks.Location = new Point(6, 135);
+			cmdTasks.Name = "cmdTasks";
+			cmdTasks.Size = new Size(197, 44);
+			cmdTasks.TabIndex = 9;
+			cmdTasks.Text = "Создать задание в планировщике";
+			cmdTasks.UseVisualStyleBackColor = true;
+			cmdTasks.Click += cmdTasks_Click;
+			// 
 			// nudExecPeriod
 			// 
 			nudExecPeriod.Location = new Point(139, 96);
-			nudExecPeriod.Maximum = new decimal(new int[] { 365, 0, 0, 0 });
+			nudExecPeriod.Maximum = new decimal(new int[] { 7, 0, 0, 0 });
+			nudExecPeriod.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
 			nudExecPeriod.Name = "nudExecPeriod";
 			nudExecPeriod.Size = new Size(64, 23);
 			nudExecPeriod.TabIndex = 8;
+			nudExecPeriod.Value = new decimal(new int[] { 1, 0, 0, 0 });
 			// 
 			// lblDay
 			// 
@@ -456,6 +471,7 @@
 			// 
 			// gpbFileName
 			// 
+			gpbFileName.Controls.Add(chkResultsFileNameAddDate);
 			gpbFileName.Controls.Add(cmdResultsFileName);
 			gpbFileName.Controls.Add(txtResultsFileName);
 			gpbFileName.Controls.Add(lblResultsFileName);
@@ -478,6 +494,16 @@
 			gpbFileName.TabIndex = 2;
 			gpbFileName.TabStop = false;
 			gpbFileName.Text = "Имя файла запроса";
+			// 
+			// chkResultsFileNameAddDate
+			// 
+			chkResultsFileNameAddDate.AutoSize = true;
+			chkResultsFileNameAddDate.Location = new Point(6, 260);
+			chkResultsFileNameAddDate.Name = "chkResultsFileNameAddDate";
+			chkResultsFileNameAddDate.Size = new Size(354, 19);
+			chkResultsFileNameAddDate.TabIndex = 21;
+			chkResultsFileNameAddDate.Text = "Добавлять текущее время и дату к имени файла результата";
+			chkResultsFileNameAddDate.UseVisualStyleBackColor = true;
 			// 
 			// cmdResultsFileName
 			// 
@@ -791,5 +817,7 @@
 		internal Label lblResultsFileName;
 		internal Label lblVersion;
 		internal OpenFileDialog ofdResultsFileName;
+		internal Button cmdTasks;
+		private CheckBox chkResultsFileNameAddDate;
 	}
 }

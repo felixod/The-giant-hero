@@ -8,17 +8,23 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Windows.Forms;
 using System.Diagnostics;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using OfficeOpenXml.Utils;
 
 namespace SQLBuilder
 {
 	public partial class frmMain : Form
 	{
+		private bool _silent;
 		private Stopwatch stopwatch = new();
 		private System.Windows.Forms.Timer timer;
 
-		public frmMain()
+		public frmMain(bool silent)
 		{
+			_silent = silent;
 			InitializeComponent();
+			
 		}
 		private void frmMain_Load(object sender, EventArgs e)
 		{
@@ -65,6 +71,11 @@ namespace SQLBuilder
 				txtResultsFileName.Text = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
 			else
 				txtResultsFileName.Text = "";
+			// Загружаем из INI-файла Значение добавлять ли к имени файла результата дату
+			if (iniFile.KeyExists("FILENAME", "XLSX_File_Name_Date"))
+				chkResultsFileNameAddDate.Checked = Convert.ToBoolean(iniFile.ReadKey("FILENAME", "XLSX_File_Name_Date"));
+			else
+				chkResultsFileNameAddDate.Checked = false;
 			// Загружаем из INI-файла название базы данных
 			if (iniFile.KeyExists("FILENAME", "SQL_DB_InitialCatalog"))
 				txtInitialCatalog.Text = iniFile.ReadKey("FILENAME", "SQL_DB_InitialCatalog");
@@ -100,6 +111,13 @@ namespace SQLBuilder
 			LoadDepartments();
 			Log.Write("Загрузка параметров из ini-файла завершена");
 			TextBoxRead();
+			if (_silent)
+			{
+				this.Visible = false;
+				this.ShowInTaskbar = false;
+				this.WindowState = FormWindowState.Minimized;
+				cmdExport_Click(sender, e);
+			}
 		}
 
 
@@ -250,6 +268,7 @@ namespace SQLBuilder
 			iniFile.WriteKey("FILENAME", "SQL_DB_InitialCatalog", txtInitialCatalog.Text);
 			iniFile.WriteKey("FILENAME", "SQL_DB_IntegratedSecurity", chkIntegratedSecurity.Checked.ToString());
 			iniFile.WriteKey("FILENAME", "SQL_DB_TrustServerCertificate", chkTrustServerCertificate.Checked.ToString());
+			iniFile.WriteKey("FILENAME", "XLSX_File_Name_Date", chkResultsFileNameAddDate.Checked.ToString());
 			Log.Write("Запись параметров в ini-файл завершена");
 		}
 
@@ -335,7 +354,6 @@ namespace SQLBuilder
 					SqlDataAdapter adapter = new(command);
 					DataTable dataTable = new();
 
-
 					Log.Write("Начинаем выполнение запроса. Ожидайте, запрос может выполняться ОЧЕНЬ продолжительное время.");
 					TextBoxRead();
 					int i = tabMain.SelectedIndex;
@@ -367,7 +385,7 @@ namespace SQLBuilder
 
 					// Отписываемся от события RowsUpdated
 					adapter.RowUpdated -= Adapter_RowUpdated;
-					
+
 					tabMain.SelectedIndex = i;
 
 					// Set the LicenseContext
@@ -400,6 +418,21 @@ namespace SQLBuilder
 
 						// Save Excel package to a file
 						string filePath = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
+
+						if (chkResultsFileNameAddDate.Checked)
+						{
+							// Получаем текущую дату и время
+							string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
+
+							// Разделяем имя файла и расширение
+							string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+							string fileExtension = Path.GetExtension(filePath);
+
+							// Формируем новое имя файла
+							filePath = $"{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
+						}
+
+						Log.Write($"Файл выгружается в : {filePath}");
 						FileInfo excelFile = new(filePath);
 						excelPackage.SaveAs(excelFile);
 
@@ -431,9 +464,8 @@ namespace SQLBuilder
 							if (header.StartsWith("S") && sensorNames.ContainsKey(header.Substring(1)))
 							{
 								worksheet.Cells[1, col].Value = sensorNames[header.Substring(1)];
-								int prefix;
 								string sprefix = sensorPrefix[header.Substring(1)];
-								if (int.TryParse(sprefix, out prefix))
+								if (int.TryParse(sprefix, out int prefix))
 								{
 									worksheet.Cells[3, col].Value = prefix;
 								}
@@ -474,8 +506,15 @@ namespace SQLBuilder
 
 					Log.Write("Выгрузка успешно завершена.");
 					TextBoxRead();
-					MessageBox.Show("Выгрузка успешно завершена");
+					if (!_silent)
+					{
+						MessageBox.Show("Выгрузка успешно завершена");
+					}
 					cmdExport.Enabled = true;
+					if (_silent)
+					{
+						Application.Exit();
+					}
 				}
 				catch (SqlException e)
 				{
@@ -681,7 +720,89 @@ namespace SQLBuilder
 				Log.Write(string.Concat("Выбран файл Microsoft Excel для хранения результатов работы: ", ofdResultsFileName.FileName));
 			txtResultsFileName.Text = ofdResultsFileName.FileName;
 		}
+
+		private void cmdTasks_Click(object sender, EventArgs e)
+		{
+			// Путь к исполняемому файлу, который нужно запускать
+			string exePath = System.Windows.Forms.Application.ExecutablePath + " /s";
+			string workingDirectory = Environment.CurrentDirectory;
+
+			// Получаем выбранный день недели
+			int dayOfWeek = (int)nudExecPeriod.Value;
+
+			string arguments = $"/CREATE /TN \"SCADAExport\" /TR \"{exePath}\" /SC WEEKLY /D {GetDayOfWeekString(dayOfWeek)} /ST {dtpExecTime.Value:HH:mm}";
+
+			DeleteTasks("SCADAExport");
+
+			// Создаем объект ProcessStartInfo
+			ProcessStartInfo startInfo = new()
+			{
+				FileName = "schtasks.exe",
+				Arguments = arguments,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				WorkingDirectory = workingDirectory
+			};
+
+			// Запускаем процесс
+			using Process process = Process.Start(startInfo);
+			// Читаем вывод процесса
+			string output = process.StandardOutput.ReadToEnd();
+			string error = process.StandardError.ReadToEnd();
+
+			// Проверяем результат
+			if (process.ExitCode == 0)
+			{
+				Console.WriteLine("Задание успешно создано в планировщике.");
+			}
+			else
+			{
+				Console.WriteLine($"Ошибка при создании задания: {error}");
+			}
+		}
+
+		static string GetDayOfWeekString(int dayOfWeek)
+		{
+			return dayOfWeek switch
+			{
+				1 => "MON",
+				2 => "TUE",
+				3 => "WED",
+				4 => "THU",
+				5 => "FRI",
+				6 => "SAT",
+				7 => "SUN",
+				_ => "",
+			};
+		}
+
+		static void DeleteTasks (string taskName)
+		{
+			ProcessStartInfo startInfo = new()
+			{
+				FileName = "schtasks.exe",
+				Arguments = $"/DELETE /TN \"{taskName}\" /F",
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true
+			};
+
+			using Process process = Process.Start(startInfo);
+			process.WaitForExit();
+			int exitCode = process.ExitCode;
+
+			if (exitCode == 0)
+			{
+				Console.WriteLine($"Task '{taskName}' has been successfully deleted.");
+			}
+			else
+			{
+				Console.WriteLine($"Failed to delete task '{taskName}'. Exit code: {exitCode}");
+			}
+		}
 	}
+}
 
 	public class TreeViewXmlLoader
 	{
@@ -753,4 +874,3 @@ namespace SQLBuilder
 			return treeNode;
 		}
 	}
-}
