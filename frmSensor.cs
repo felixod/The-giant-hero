@@ -11,14 +11,16 @@ namespace SQLBuilder
 		private int _itemId;
 		private bool _insert;
 		private string _filter;
+		private string? _config;
 
 
-		public frmSensor(bool insert, int itemId, string filter)
+		public frmSensor(bool insert, int itemId, string filter, string? config = null)
 		{
 			InitializeComponent();
 			_itemId = itemId; // Сохраняем переданный ID элемента
 			_insert = insert;
 			_filter = filter;
+			_config = config;
 		}
 
 		private void frmSensor_Load(object sender, EventArgs e)
@@ -45,7 +47,16 @@ namespace SQLBuilder
 		private void Worker_DoWork(object sender, DoWorkEventArgs e)
 		{
 			// connectionString = "Server=MSSQL02\\DB02;Database=MSCADA;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True";
-			IniFile iniFile = new("config.ini");
+			// Использовать конфигурационный файл с префиксом, если префикс передан
+			IniFile iniFile;
+			if (!string.IsNullOrEmpty(_config))
+			{
+				iniFile = new($"config_{_config}.ini");
+			}
+			else
+			{
+				iniFile = new("config.ini");
+			}
 			SqlConnectionStringBuilder builder = new()
 			{
 				DataSource = iniFile.ReadKey("FILENAME", "SQL_DB_DataSource"),

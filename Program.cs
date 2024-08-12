@@ -54,7 +54,7 @@ namespace SQLBuilder
 					{
 						configurationName = args[i + 1];
 						Log.Write($"Используется конфигурация: {configurationName}");
-						MessageBox.Show (configurationName);
+						// MessageBox.Show (configurationName);
 						i++; // Пропускаем следующий аргумент, так как это название конфигурации
 					}
 				}

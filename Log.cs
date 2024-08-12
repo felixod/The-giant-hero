@@ -13,7 +13,7 @@
 		// Читаем весь лог в строку
 		public static string Read()
 		{
-			if (_config != null)
+			if (!string.IsNullOrEmpty(_config))
 			{
 				fFileNameLog = $"SQLBuilder_{_config}.log";
 			}
@@ -30,7 +30,7 @@
 		// Записываем строку в лог-файл
 		public static void Write(string sLog)
 		{
-			if (_config != null)
+			if (!string.IsNullOrEmpty(_config))
 			{
 				fFileNameLog = $"SQLBuilder_{_config}.log";
 			}

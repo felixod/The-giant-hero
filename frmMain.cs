@@ -27,7 +27,7 @@ namespace SQLBuilder
 		{
 			_silent = silent;
 			_config = config;
-			if (_config != null)
+			if (!string.IsNullOrEmpty(_config))
 			{
 				Log.ConfigPrefix(_config);
 			}
@@ -40,7 +40,18 @@ namespace SQLBuilder
 			rtbLog.Text = Log.Read();
 			Log.Separate();
 			Log.Write("Запуск приложения");
-			IniFile iniFile = new("config.ini");
+
+			// Использовать конфигурационный файл с префиксом, если префикс передан
+			IniFile iniFile;
+			if (!string.IsNullOrEmpty(_config))
+			{
+				iniFile = new($"config_{_config}.ini");
+			}
+			else 
+			{
+				iniFile = new("config.ini");
+			}
+
 			// Секция SCHEDULE
 			// Загружаем из INI-файла начальную дату
 			if (iniFile.KeyExists("SCHEDULE", "Start_data"))
@@ -188,7 +199,7 @@ namespace SQLBuilder
 		{
 			if (treeView.SelectedNode != null)
 			{
-				frmSensor form = new(insert, (int)treeView.SelectedNode.Tag, treeView.SelectedNode.Text);
+				frmSensor form = new(insert, (int)treeView.SelectedNode.Tag, treeView.SelectedNode.Text, _config);
 				form.ShowDialog();
 			}
 			LoadSensors();
@@ -296,7 +307,16 @@ namespace SQLBuilder
 
 		private void SaveIni()
 		{
-			IniFile iniFile = new("config.ini");
+			// Использовать конфигурационный файл с префиксом, если префикс передан
+			IniFile iniFile;
+			if (!string.IsNullOrEmpty(_config))
+			{
+				iniFile = new($"config_{_config}.ini");
+			}
+			else
+			{
+				iniFile = new("config.ini");
+			}
 			// Секция SCHEDULE
 			iniFile.WriteKey("SCHEDULE", "Start_data", dtpStartExecution.Value.Date.ToLongDateString());
 			iniFile.WriteKey("SCHEDULE", "Execution_time", dtpExecTime.Value.ToShortTimeString());
@@ -403,7 +423,16 @@ namespace SQLBuilder
 
 					string sqlQuery;
 					// Read SQL query from file
-					IniFile iniFile = new("config.ini");
+					// Использовать конфигурационный файл с префиксом, если префикс передан
+					IniFile iniFile;
+					if (_config != null)
+					{
+						iniFile = new($"config_{_config}.ini");
+					}
+					else
+					{
+						iniFile = new("config.ini");
+					}
 					using (StreamReader sr = new(iniFile.ReadKey("FILENAME", "SQL_File_Name")))
 					{
 						sqlQuery = sr.ReadToEnd();
