@@ -9,9 +9,6 @@ namespace SQLBuilder
 		private int _itemId;
 		private bool _insert;
 
-
-
-
 		public (string Name, string Prefix, string Code) GetAttributesById(string xmlFilePath, int nodeId)
 		{
 			XmlDocument doc = new();
@@ -61,9 +58,9 @@ namespace SQLBuilder
 			{
 				XDocument xmlDoc = XDocument.Load(xmlFilePath);
 				// Находим родительский элемент с заданным id
-#pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+				#pragma warning disable CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
 				XElement parentElement = xmlDoc.Descendants("Node").FirstOrDefault(node => node.Attribute("Id")?.Value == parentId.ToString());
-#pragma warning restore CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
+				#pragma warning restore CS8600 // Преобразование литерала, допускающего значение NULL или возможного значения NULL в тип, не допускающий значение NULL.
 
 				if (parentElement != null)
 				{
@@ -126,7 +123,7 @@ namespace SQLBuilder
 			UpdateButton();
 			if (!_insert)
 			{
-				var result = GetAttributesById("departments.xml", _itemId);
+				var result = GetAttributesById(Program._department, _itemId);
 				txtName.Text = result.Name;
 				txtPrefix.Text = result.Prefix;
 				txtCode.Text = result.Code;
@@ -137,19 +134,19 @@ namespace SQLBuilder
 		{
 			if (_insert)
 			{
-				int newId = FindMaxIdAndIncrement("departments.xml");
+				int newId = FindMaxIdAndIncrement(Program._department);
 				if (_itemId == 0)
 				{
-					AddElementToParentById("departments.xml", _itemId, txtName.Text, txtPrefix.Text, txtCode.Text, newId);
+					AddElementToParentById(Program._department, _itemId, txtName.Text, txtPrefix.Text, txtCode.Text, newId);
 				}
 				else
 				{
-					AddElementToParentById("departments.xml", _itemId, txtName.Text, txtPrefix.Text, txtCode.Text, newId);
+					AddElementToParentById(Program._department, _itemId, txtName.Text, txtPrefix.Text, txtCode.Text, newId);
 				}
 			}
 			else
 			{
-				UpdateElementById("departments.xml", _itemId, txtName.Text, txtPrefix.Text, txtCode.Text);
+				UpdateElementById(Program._department, _itemId, txtName.Text, txtPrefix.Text, txtCode.Text);
 			}
 
 			this.Close();

@@ -17,7 +17,7 @@ namespace SQLBuilder
 
 		private void frmSensorUpdate_Load(object sender, EventArgs e)
 		{
-			LoadSensor("departments.xml");
+			LoadSensor(Program._department);
 		}
 
 		private void LoadSensor(string xmlFilePath)
@@ -71,7 +71,7 @@ namespace SQLBuilder
 
 		private void cmdOK_Click(object sender, EventArgs e)
 		{
-			SaveSensor("departments.xml");
+			SaveSensor(Program._department);
 			this.Close();
 		}
 	}

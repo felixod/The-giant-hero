@@ -1,3 +1,4 @@
+using SQLBuilder.ini;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -8,6 +9,10 @@ namespace SQLBuilder
 		/// <summary>
 		///  The main entry point for the application.
 		/// </summary>
+		/// 
+
+		public static string _department = "departments.xml";
+
 		[STAThread]
 		static void Main(string[] args)
 		{
@@ -37,6 +42,10 @@ namespace SQLBuilder
 			//	Application.Run(new frmMain(false));
 			//}
 
+			string workingDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			// Установка рабочей папки
+			Directory.SetCurrentDirectory(workingDirectory);
+
 			if (args.Length > 0)
 			{
 				bool isSilentMode = false;
@@ -54,14 +63,37 @@ namespace SQLBuilder
 					{
 						configurationName = args[i + 1];
 						Log.Write($"Используется конфигурация: {configurationName}");
-						// MessageBox.Show (configurationName);
-						i++; // Пропускаем следующий аргумент, так как это название конфигурации
+
+
+						// Меняем название конфигурации по умолчанию для xml-файла
+						if (!string.IsNullOrEmpty(configurationName))
+						{
+							_department = $"departments_{configurationName}.xml";
+					
+							string departmentFilePath = Path.Combine(workingDirectory, _department);
+							string sourceFilePath = Path.Combine(workingDirectory, "default.dat");
+
+							// Проверка наличия файла
+							if (!File.Exists(departmentFilePath))
+							{
+								// Если файл не существует, копируем default.dat в новый файл
+								File.Copy(sourceFilePath, departmentFilePath);
+								Console.WriteLine($"Файл '{departmentFilePath}' был скопирован из 'default.dat'.");
+							}
+							else
+							{
+								Console.WriteLine($"Файл '{departmentFilePath}' уже существует.");
+							}
+						}
+						else
+						{
+							Console.WriteLine("Имя конфигурации не задано или пусто.");
+							// MessageBox.Show (configurationName);
+							i++; // Пропускаем следующий аргумент, так как это название конфигурации
+						}
 					}
 				}
 
-				string workingDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-				// Установка рабочей папки
-				Directory.SetCurrentDirectory(workingDirectory);
 
 				ApplicationConfiguration.Initialize();
 

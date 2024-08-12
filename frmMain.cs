@@ -27,6 +27,8 @@ namespace SQLBuilder
 		{
 			_silent = silent;
 			_config = config;
+
+			// Изменяем значение файл логов по-умолчанию
 			if (!string.IsNullOrEmpty(_config))
 			{
 				Log.ConfigPrefix(_config);
@@ -218,7 +220,7 @@ namespace SQLBuilder
 			}
 
 			treeView.Nodes.Clear();
-			TreeViewXmlLoader.LoadTreeViewFromXml(treeView, "departments.xml");
+			TreeViewXmlLoader.LoadTreeViewFromXml(treeView, Program._department);
 
 			SelectNodeByTag(id);
 		}
@@ -231,7 +233,7 @@ namespace SQLBuilder
 		{
 			if (treeView.SelectedNode != null)
 			{
-				LoadSensorForIdXML("departments.xml", (int)treeView.SelectedNode.Tag);
+				LoadSensorForIdXML(Program._department, (int)treeView.SelectedNode.Tag);
 			}
 		}
 
@@ -402,7 +404,7 @@ namespace SQLBuilder
 				{
 					await connection.OpenAsync();
 
-					string xmlFilePath = "departments.xml";
+					string xmlFilePath = Program._department;
 					string selectedIds = "";
 
 					XmlDocument xmlDoc = new();
@@ -691,7 +693,7 @@ namespace SQLBuilder
 
 				if ((int)treeView.SelectedNode.Tag != 0)
 				{
-					RemoveNodeById("departments.xml", (int)treeView.SelectedNode.Tag);
+					RemoveNodeById(Program._department, (int)treeView.SelectedNode.Tag);
 					treeView.Nodes.Remove(treeView.SelectedNode);
 				}
 			}
@@ -762,7 +764,7 @@ namespace SQLBuilder
 
 		private void toolStripMenuItem3_Click(object sender, EventArgs e)
 		{
-			RemoveSensors(listView, "departments.xml");
+			RemoveSensors(listView, Program._department);
 		}
 
 		public static void RemoveSensors(ListView listView, string xmlFilePath)

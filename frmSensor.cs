@@ -130,7 +130,7 @@ namespace SQLBuilder
 		{
 			// Загружаем XML документ
 			XmlDocument doc = new();
-			doc.Load("departments.xml");
+			doc.Load(Program._department);
 
 			// Находим узел, в который хотим добавить новый Sensor
 			XmlNode parentNode = doc.SelectSingleNode($"//Node[@Id='{nodeId}']");
@@ -171,7 +171,7 @@ namespace SQLBuilder
 				}
 
 				// Сохраняем изменения в XML файл
-				doc.Save("departments.xml");
+				doc.Save(Program._department);
 
 				Console.WriteLine("Новый Sensor успешно добавлен.");
 			}
