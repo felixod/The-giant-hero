@@ -37,6 +37,8 @@
 			splitContainer = new SplitContainer();
 			treeView = new TreeView();
 			contextMenuTreeView = new ContextMenuStrip(components);
+			configToolStripmenuItem = new ToolStripMenuItem();
+			toolStripSeparator1 = new ToolStripSeparator();
 			insertToolStripMenuItem = new ToolStripMenuItem();
 			updateToolStripMenuItem = new ToolStripMenuItem();
 			deleteToolStripMenuItem = new ToolStripMenuItem();
@@ -69,6 +71,9 @@
 			lblInterval = new Label();
 			tpgFileName = new TabPage();
 			gpbFileName = new GroupBox();
+			txtConfigNameId = new TextBox();
+			txtConfigName = new TextBox();
+			lblConfigName = new Label();
 			chkResultsFileNameAddDate = new CheckBox();
 			cmdResultsFileName = new Button();
 			txtResultsFileName = new TextBox();
@@ -196,29 +201,41 @@
 			// 
 			// contextMenuTreeView
 			// 
-			contextMenuTreeView.Items.AddRange(new ToolStripItem[] { insertToolStripMenuItem, updateToolStripMenuItem, deleteToolStripMenuItem });
+			contextMenuTreeView.Items.AddRange(new ToolStripItem[] { configToolStripmenuItem, toolStripSeparator1, insertToolStripMenuItem, updateToolStripMenuItem, deleteToolStripMenuItem });
 			contextMenuTreeView.Name = "contextMenuTreeView";
-			contextMenuTreeView.Size = new Size(129, 70);
+			contextMenuTreeView.Size = new Size(160, 98);
 			contextMenuTreeView.Opening += contextMenuTreeView_Opening;
+			// 
+			// configToolStripmenuItem
+			// 
+			configToolStripmenuItem.Name = "configToolStripmenuItem";
+			configToolStripmenuItem.Size = new Size(159, 22);
+			configToolStripmenuItem.Text = "По умолчанию";
+			configToolStripmenuItem.Click += configToolStripmenuItem_Click;
+			// 
+			// toolStripSeparator1
+			// 
+			toolStripSeparator1.Name = "toolStripSeparator1";
+			toolStripSeparator1.Size = new Size(156, 6);
 			// 
 			// insertToolStripMenuItem
 			// 
 			insertToolStripMenuItem.Name = "insertToolStripMenuItem";
-			insertToolStripMenuItem.Size = new Size(128, 22);
+			insertToolStripMenuItem.Size = new Size(159, 22);
 			insertToolStripMenuItem.Text = "Добавить";
 			insertToolStripMenuItem.Click += insertToolStripMenuItem_Click;
 			// 
 			// updateToolStripMenuItem
 			// 
 			updateToolStripMenuItem.Name = "updateToolStripMenuItem";
-			updateToolStripMenuItem.Size = new Size(128, 22);
+			updateToolStripMenuItem.Size = new Size(159, 22);
 			updateToolStripMenuItem.Text = "Изменить";
 			updateToolStripMenuItem.Click += updateToolStripMenuItem_Click;
 			// 
 			// deleteToolStripMenuItem
 			// 
 			deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
-			deleteToolStripMenuItem.Size = new Size(128, 22);
+			deleteToolStripMenuItem.Size = new Size(159, 22);
 			deleteToolStripMenuItem.Text = "Удалить";
 			deleteToolStripMenuItem.Click += deleteToolStripMenuItem_Click;
 			// 
@@ -471,6 +488,9 @@
 			// 
 			// gpbFileName
 			// 
+			gpbFileName.Controls.Add(txtConfigNameId);
+			gpbFileName.Controls.Add(txtConfigName);
+			gpbFileName.Controls.Add(lblConfigName);
 			gpbFileName.Controls.Add(chkResultsFileNameAddDate);
 			gpbFileName.Controls.Add(cmdResultsFileName);
 			gpbFileName.Controls.Add(txtResultsFileName);
@@ -494,6 +514,30 @@
 			gpbFileName.TabIndex = 2;
 			gpbFileName.TabStop = false;
 			gpbFileName.Text = "Имя файла запроса";
+			// 
+			// txtConfigNameId
+			// 
+			txtConfigNameId.Location = new Point(502, 370);
+			txtConfigNameId.Name = "txtConfigNameId";
+			txtConfigNameId.Size = new Size(75, 23);
+			txtConfigNameId.TabIndex = 24;
+			txtConfigNameId.Visible = false;
+			// 
+			// txtConfigName
+			// 
+			txtConfigName.Location = new Point(182, 369);
+			txtConfigName.Name = "txtConfigName";
+			txtConfigName.Size = new Size(314, 23);
+			txtConfigName.TabIndex = 23;
+			// 
+			// lblConfigName
+			// 
+			lblConfigName.AutoSize = true;
+			lblConfigName.Location = new Point(6, 373);
+			lblConfigName.Name = "lblConfigName";
+			lblConfigName.Size = new Size(177, 15);
+			lblConfigName.TabIndex = 22;
+			lblConfigName.Text = "Наименование конфигурации:";
 			// 
 			// chkResultsFileNameAddDate
 			// 
@@ -819,5 +863,10 @@
 		internal OpenFileDialog ofdResultsFileName;
 		internal Button cmdTasks;
 		private CheckBox chkResultsFileNameAddDate;
+		internal TextBox txtConfigName;
+		internal Label lblConfigName;
+		private ToolStripMenuItem configToolStripmenuItem;
+		private ToolStripSeparator toolStripSeparator1;
+		internal TextBox txtConfigNameId;
 	}
 }

@@ -26,7 +26,7 @@ namespace SQLBuilder
 		{
 			_silent = silent;
 			InitializeComponent();
-			
+
 		}
 		private void frmMain_Load(object sender, EventArgs e)
 		{
@@ -63,6 +63,20 @@ namespace SQLBuilder
 			else
 				dtpFinalData.Value = DateTime.Now;
 			// Секция FILENAME
+
+			// Загружаем из INI-файла наименование и код конфигурации
+			if (iniFile.KeyExists("FILENAME", "Config_Name"))
+			{
+				txtConfigName.Text = iniFile.ReadKey("FILENAME", "Config_Name");
+				this.Text = $"SQLBuilder ({txtConfigName.Text})";
+			}
+			else
+				txtConfigName.Text = "";
+			if (iniFile.KeyExists("FILENAME", "Config_Name_Id"))
+				txtConfigNameId.Text = iniFile.ReadKey("FILENAME", "Config_Name_Id");
+			else
+				txtConfigNameId.Text = "";
+
 			// Загружаем из INI-файла имя файлы с SQL-запросом
 			if (iniFile.KeyExists("FILENAME", "SQL_File_Name"))
 				txtSQLFileName.Text = iniFile.ReadKey("FILENAME", "SQL_File_Name");
@@ -111,6 +125,26 @@ namespace SQLBuilder
 				chkTrustServerCertificate.Checked = true;
 
 			LoadDepartments();
+
+			// Выбираем узел по-умолчанию, если он сохранен в конфигурации
+			string inputText = txtConfigNameId.Text;
+			if (string.IsNullOrWhiteSpace(inputText))
+			{
+				Console.WriteLine("Поле не должно быть пустым.");
+			}
+			else
+			{
+				if (int.TryParse(inputText, out int configNameId))
+				{
+					// Если преобразование прошло успешно, вызываем метод
+					SelectNodeByTag(configNameId);
+				}
+				else
+				{
+					Console.WriteLine("Введите корректное целое число.");
+				}
+			}
+
 			Log.Write("Загрузка параметров из ini-файла завершена");
 			TextBoxRead();
 			if (_silent)
@@ -169,18 +203,7 @@ namespace SQLBuilder
 			treeView.Nodes.Clear();
 			TreeViewXmlLoader.LoadTreeViewFromXml(treeView, "departments.xml");
 
-			foreach (TreeNode node in treeView.Nodes)
-			{
-				int idn = (int)node.Tag;
-				if (idn == id)
-				{
-					treeView.SelectedNode = node;
-					break;
-				}
-				// Если узел имеет дочерние узлы, продолжайте поиск рекурсивно
-				SelectNodeByTagRecursive(node, id);
-			}
-
+			SelectNodeByTag(id);
 		}
 
 
@@ -219,6 +242,22 @@ namespace SQLBuilder
 						listView.Items.Add(param);
 					}
 				}
+			}
+		}
+
+		// Рекурсивный метод для поиска
+		private void SelectNodeByTag(int id)
+		{
+			foreach (TreeNode node in treeView.Nodes)
+			{
+				int idn = (int)node.Tag;
+				if (idn == id)
+				{
+					treeView.SelectedNode = node;
+					break;
+				}
+				// Если узел имеет дочерние узлы, продолжайте поиск рекурсивно
+				SelectNodeByTagRecursive(node, id);
 			}
 		}
 
@@ -261,6 +300,8 @@ namespace SQLBuilder
 			iniFile.WriteKey("INTERVAL", "Final_data", dtpFinalData.Value.Date.ToLongDateString());
 			// TODO Тут что-то про объединение данных с прыдыдущими данными, пока непонятно
 			// Секция FILENAME
+			iniFile.WriteKey("FILENAME", "Config_Name", txtConfigName.Text);
+			iniFile.WriteKey("FILENAME", "Config_Name_Id", txtConfigNameId.Text);
 			iniFile.WriteKey("FILENAME", "SQL_File_Name", txtSQLFileName.Text);
 			iniFile.WriteKey("FILENAME", "XLSX_File_Name", txtResultsFileName.Text);
 			iniFile.WriteKey("FILENAME", "SQL_DB_DataSource", txtDataSource.Text);
@@ -289,10 +330,27 @@ namespace SQLBuilder
 
 		private void cmdExport_Click(object sender, EventArgs e)
 		{
-			StreamReader reader = new(txtSQLFileName.Text);
-			string strSQL = reader.ReadToEnd();
-			Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
-			rtbLog.Text = Log.Read();
+			try
+			{
+				using StreamReader reader = new(txtSQLFileName.Text);
+				// Чтение данных из файла
+				string strSQL = reader.ReadToEnd();
+
+				Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
+				rtbLog.Text = Log.Read();
+			}
+			catch (FileNotFoundException fnfEx)
+			{
+				// Обработка случая, когда файл не найден
+				MessageBox.Show("Файл не найден: " + fnfEx.Message);
+				// Дополнительные действия, например, уведомление пользователя
+			}
+			catch (Exception ex)
+			{
+				// Обработка других исключений
+				MessageBox.Show("Произошла ошибка: " + ex.Message);
+				// Дополнительные действия, например, логирование ошибки
+			}
 
 			async Task Main(string sDataSource, string sUserID, string sPassword, string sInitialCatalog, bool bIntegratedSecurity, bool bTrustServerCertificate, string strSQL)
 			{
@@ -375,7 +433,22 @@ namespace SQLBuilder
 					timer.Start();
 
 					// Заполняем DataTable
-					await Task.Run(() => adapter.Fill(dataTable));
+					try
+					{
+						await Task.Run(() => adapter.Fill(dataTable));
+					}
+					catch (SqlException sqlEx)
+					{
+						// Обработка ошибок SQL
+						Console.WriteLine("Произошла ошибка SQL: " + sqlEx.Message);
+						// Дополнительные действия, например, логирование ошибки
+					}
+					catch (Exception ex)
+					{
+						// Обработка других исключений
+						Console.WriteLine("Произошла ошибка: " + ex.Message);
+						// Дополнительные действия, например, логирование ошибки
+					}
 
 					stopwatch.Stop();
 
@@ -626,12 +699,14 @@ namespace SQLBuilder
 				insertToolStripMenuItem.Enabled = true;
 				updateToolStripMenuItem.Enabled = true;
 				deleteToolStripMenuItem.Enabled = true;
+				configToolStripmenuItem.Enabled = true;
 			}
 			else
 			{
 				insertToolStripMenuItem.Enabled = true;
 				updateToolStripMenuItem.Enabled = false;
 				deleteToolStripMenuItem.Enabled = false;
+				configToolStripmenuItem.Enabled = false;
 			}
 		}
 
@@ -727,7 +802,7 @@ namespace SQLBuilder
 		{
 
 			WindowsIdentity identity = WindowsIdentity.GetCurrent();
-			WindowsPrincipal principal = new WindowsPrincipal(identity);
+			WindowsPrincipal principal = new(identity);
 			if (principal.IsInRole(WindowsBuiltInRole.Administrator))
 			{
 				// Выполните код, требующий прав администратора
@@ -774,7 +849,7 @@ namespace SQLBuilder
 				MessageBox.Show("Запустите приложение с правами администратора.");
 			}
 
-			
+
 		}
 
 		static string GetDayOfWeekString(int dayOfWeek)
@@ -792,7 +867,7 @@ namespace SQLBuilder
 			};
 		}
 
-		static void DeleteTasks (string taskName)
+		static void DeleteTasks(string taskName)
 		{
 			ProcessStartInfo startInfo = new()
 			{
@@ -809,11 +884,20 @@ namespace SQLBuilder
 
 			if (exitCode == 0)
 			{
-				Console.WriteLine($"Task '{taskName}' has been successfully deleted.");
+				Console.WriteLine($"Задача '{taskName}' успешно удалена.");
 			}
 			else
 			{
-				Console.WriteLine($"Failed to delete task '{taskName}'. Exit code: {exitCode}");
+				Console.WriteLine($"Неудалось удалить задачу '{taskName}'. Код ошибки: {exitCode}");
+			}
+		}
+
+		private void configToolStripmenuItem_Click(object sender, EventArgs e)
+		{
+			if (treeView.SelectedNode != null)
+			{
+				txtConfigName.Text = treeView.SelectedNode.Text;
+				txtConfigNameId.Text = treeView.SelectedNode.Tag.ToString();
 			}
 		}
 	}
