@@ -19,12 +19,18 @@ namespace SQLBuilder
 	public partial class frmMain : Form
 	{
 		private bool _silent;
+		private string? _config;
 		private Stopwatch stopwatch = new();
 		private System.Windows.Forms.Timer timer;
 
-		public frmMain(bool silent)
+		public frmMain(bool silent, string? config = null)
 		{
 			_silent = silent;
+			_config = config;
+			if (_config != null)
+			{
+				Log.ConfigPrefix(_config);
+			}
 			InitializeComponent();
 
 		}
