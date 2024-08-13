@@ -872,7 +872,7 @@ namespace SQLBuilder
 
 						// Разделяем имя файла и расширение
 						string fileNameWithoutExtension = "output";
-						string fileExtension = ".csv";
+						string fileExtension = ".xlsx";
 
 						if (chkResultsFileNameAddDate.Checked)
 						{
