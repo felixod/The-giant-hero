@@ -1,17 +1,11 @@
 
 using Microsoft.Data.SqlClient;
-using System.Threading.Tasks;
 using OfficeOpenXml;
 using SQLBuilder.ini;
 using System.Data;
 using System.Xml;
 using System.Xml.Linq;
-using System.Windows.Forms;
 using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OfficeOpenXml.Utils;
-using System.Security.Permissions;
 using System.Security.Principal;
 
 namespace SQLBuilder
@@ -21,7 +15,7 @@ namespace SQLBuilder
 		private bool _silent;
 		private string? _config;
 		private Stopwatch stopwatch = new();
-		private System.Windows.Forms.Timer timer;
+		private System.Windows.Forms.Timer? timer;
 
 		public frmMain(bool silent, string? config = null)
 		{
@@ -82,7 +76,6 @@ namespace SQLBuilder
 			else
 				dtpFinalData.Value = DateTime.Now;
 			// Секция FILENAME
-
 			// Загружаем из INI-файла наименование и код конфигурации
 			if (iniFile.KeyExists("FILENAME", "Config_Name"))
 			{
@@ -100,14 +93,14 @@ namespace SQLBuilder
 				txtSQLFileName.Text = iniFile.ReadKey("FILENAME", "SQL_File_Name");
 			else
 				txtSQLFileName.Text = "";
-			// Загружаем из INI-файла имя файлы с результатом работы
-			if (iniFile.KeyExists("FILENAME", "XLSX_File_Name"))
-				txtResultsFileName.Text = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
+			// Загружаем из INI-файла путь до папки с результатами
+			if (iniFile.KeyExists("FILENAME", "PathToResultFolder"))
+				txtResultsFileName.Text = iniFile.ReadKey("FILENAME", "PathToResultFolder");
 			else
 				txtResultsFileName.Text = "";
 			// Загружаем из INI-файла Значение добавлять ли к имени файла результата дату
-			if (iniFile.KeyExists("FILENAME", "XLSX_File_Name_Date"))
-				chkResultsFileNameAddDate.Checked = Convert.ToBoolean(iniFile.ReadKey("FILENAME", "XLSX_File_Name_Date"));
+			if (iniFile.KeyExists("FILENAME", "AddDateToFileResult"))
+				chkResultsFileNameAddDate.Checked = Convert.ToBoolean(iniFile.ReadKey("FILENAME", "AddDateToFileResult"));
 			else
 				chkResultsFileNameAddDate.Checked = false;
 			// Загружаем из INI-файла название базы данных
@@ -193,7 +186,6 @@ namespace SQLBuilder
 			this.Text = $"{txtConfigName.Text} (Конфигурация: {Program._department})";
 		}
 
-
 		/// <summary>
 		/// Открыть форму для добавления записи или изменения
 		/// </summary>
@@ -264,7 +256,7 @@ namespace SQLBuilder
 				doc.Load(xmlFilePath); // Путь к вашему XML файлу
 				listView.Items.Clear();
 
-				XmlNode node = doc.SelectSingleNode($"//Node[@Id='{nodeId}']");
+				XmlNode? node = doc.SelectSingleNode($"//Node[@Id='{nodeId}']");
 				if (node != null)
 				{
 					foreach (XmlNode sensorNode in node.SelectNodes("Sensor"))
@@ -349,7 +341,7 @@ namespace SQLBuilder
 			iniFile.WriteKey("FILENAME", "Config_Name", txtConfigName.Text);
 			iniFile.WriteKey("FILENAME", "Config_Name_Id", txtConfigNameId.Text);
 			iniFile.WriteKey("FILENAME", "SQL_File_Name", txtSQLFileName.Text);
-			iniFile.WriteKey("FILENAME", "XLSX_File_Name", txtResultsFileName.Text);
+			iniFile.WriteKey("FILENAME", "PathToResultFolder", txtResultsFileName.Text);
 			iniFile.WriteKey("FILENAME", "SQL_DB_DataSource", txtDataSource.Text);
 			iniFile.WriteKey("FILENAME", "SQL_DB_UserID", txtUserID.Text);
 			byte[] key = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
@@ -357,7 +349,7 @@ namespace SQLBuilder
 			iniFile.WriteKey("FILENAME", "SQL_DB_InitialCatalog", txtInitialCatalog.Text);
 			iniFile.WriteKey("FILENAME", "SQL_DB_IntegratedSecurity", chkIntegratedSecurity.Checked.ToString());
 			iniFile.WriteKey("FILENAME", "SQL_DB_TrustServerCertificate", chkTrustServerCertificate.Checked.ToString());
-			iniFile.WriteKey("FILENAME", "XLSX_File_Name_Date", chkResultsFileNameAddDate.Checked.ToString());
+			iniFile.WriteKey("FILENAME", "AddDateToFileResult", chkResultsFileNameAddDate.Checked.ToString());
 			iniFile.WriteKey("FILENAME", "Format_Export", cbxFormat.SelectedIndex.ToString());
 			Log.Write("Запись параметров в ini-файл завершена");
 		}
@@ -380,12 +372,12 @@ namespace SQLBuilder
 			if (cbxFormat.SelectedIndex == 0)
 			{
 				Log.Write("Выгружаем в файл формата Microsoft Excel");
-				ExportToExcel();
+				ExportToExcelAsync();
 			}
 			else
 			{
 				Log.Write("Выгружаем в файл формата CSV");
-				ExportToCSV();
+				ExportToCSVAsync();
 			}
 		}
 
@@ -429,7 +421,7 @@ namespace SQLBuilder
 			}
 		}
 
-		private void ExportToCSV()
+		private async Task ExportToCSVAsync()
 		{
 			try
 			{
@@ -437,7 +429,7 @@ namespace SQLBuilder
 				// Чтение данных из файла
 				string strSQL = reader.ReadToEnd();
 
-				Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
+				await Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
 				rtbLog.Text = Log.Read();
 			}
 			catch (FileNotFoundException fnfEx)
@@ -455,7 +447,6 @@ namespace SQLBuilder
 
 			async Task Main(string sDataSource, string sUserID, string sPassword, string sInitialCatalog, bool bIntegratedSecurity, bool bTrustServerCertificate, string strSQL)
 			{
-
 				cmdExport.Enabled = false;
 
 				SqlConnectionStringBuilder builder = new()
@@ -467,11 +458,13 @@ namespace SQLBuilder
 					IntegratedSecurity = bIntegratedSecurity,
 					TrustServerCertificate = bTrustServerCertificate
 				};
+				Log.Separate();
 				Log.Write(string.Concat("Источник данных (DataSource): ", sDataSource));
 				Log.Write(string.Concat("Имя пользователя (UserID): ", sUserID));
 				Log.Write(string.Concat("Пароль (Password): ", "*********"));
 				Log.Write(string.Concat("База данных (InitialCatalog): ", sInitialCatalog));
 				Log.Write(string.Concat("SQL-запрос к базе данных: ", strSQL));
+
 				using SqlConnection connection = new(builder.ConnectionString);
 				try
 				{
@@ -483,7 +476,7 @@ namespace SQLBuilder
 					XmlDocument xmlDoc = new();
 					xmlDoc.Load(xmlFilePath);
 
-					XmlNodeList sensorNodes = xmlDoc.SelectNodes("//Sensor");
+					XmlNodeList? sensorNodes = xmlDoc.SelectNodes("//Sensor");
 					foreach (XmlNode sensorNode in sensorNodes)
 					{
 						string sensorId = sensorNode.Attributes["Id"].Value;
@@ -552,12 +545,14 @@ namespace SQLBuilder
 						// Обработка ошибок SQL
 						Console.WriteLine("Произошла ошибка SQL: " + sqlEx.Message);
 						// Дополнительные действия, например, логирование ошибки
+						cmdExport.Enabled = true;
 					}
 					catch (Exception ex)
 					{
 						// Обработка других исключений
 						Console.WriteLine("Произошла ошибка: " + ex.Message);
 						// Дополнительные действия, например, логирование ошибки
+						cmdExport.Enabled = true;
 					}
 
 					stopwatch.Stop();
@@ -574,28 +569,37 @@ namespace SQLBuilder
 					tabMain.SelectedIndex = i;
 
 					// Save Excel package to a file
-					string filePath = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
+					string filePath = iniFile.ReadKey("FILENAME", "PathToResultFolder");
+					// Получаем текущую дату и время
+					string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
+
+					// Разделяем имя файла и расширение
+					string fileNameWithoutExtension = "output";
+					string fileExtension = ".csv";
 
 					if (chkResultsFileNameAddDate.Checked)
 					{
-						// Получаем текущую дату и время
-						string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
-
-						// Разделяем имя файла и расширение
-						string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
-						string fileExtension = ".csv";
-
 						// Формируем новое имя файла
-
 						if (!string.IsNullOrEmpty(_config))
 						{
-							filePath = $"{fileNameWithoutExtension}_{_config}_{currentDateTime}{fileExtension}";
+							filePath = $"{filePath}\\{fileNameWithoutExtension}_{_config}_{currentDateTime}{fileExtension}";
 						}
 						else
 						{
-							filePath = $"{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
+							filePath = $"{filePath}\\{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
 						}
-
+					}
+					else
+					{
+						// Формируем новое имя файла
+						if (!string.IsNullOrEmpty(_config))
+						{
+							filePath = $"{filePath}\\{fileNameWithoutExtension}_{_config}{fileExtension}";
+						}
+						else
+						{
+							filePath = $"{filePath}\\{fileNameWithoutExtension}{fileExtension}";
+						}
 					}
 
 					WriteDataTableToCsv(dataTable, filePath);
@@ -659,7 +663,7 @@ namespace SQLBuilder
 					}
 
 					// Запись измененных данных обратно в CSV
-					using (StreamWriter writer = new StreamWriter(filePath))
+					using (StreamWriter writer = new(filePath))
 					{
 						foreach (var row in csvData)
 						{
@@ -678,142 +682,17 @@ namespace SQLBuilder
 					{
 						Application.Exit();
 					}
-
-
-					//// Set the LicenseContext
-					//ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
-					//// Export DataTable to Excel
-					//using (ExcelPackage excelPackage = new())
-					//{
-					//	ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add("Sheet1");
-					//	// Load data from DataTable to Excel worksheet
-					//	worksheet.Cells["A1"].LoadFromDataTable(dataTable, true);
-					//	worksheet.Column(1).Style.Numberformat.Format = "dd.mm.yyyy HH:mm";
-					//	worksheet.Row(1).Height = 75;
-					//	// Установка выравнивания текста по центру и включение переноса текста
-					//	worksheet.Row(1).Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
-					//	worksheet.Row(1).Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
-					//	worksheet.Row(1).Style.WrapText = true;
-					//	// Установка ширины всех колонок
-					//	for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
-					//	{
-					//		worksheet.Column(col).Width = 11; // Установить ширину колонки на 20
-					//	}
-					//	worksheet.Column(1).Width = 20;
-					//	worksheet.Cells["A1"].Value = "Время";
-					//	worksheet.Cells["B1"].Value = "день";
-					//	worksheet.Cells["C1"].Value = "месяц";
-					//	worksheet.Cells["D1"].Value = "год";
-					//	worksheet.Cells["E1"].Value = "час";
-					//	worksheet.Cells["F1"].Value = "мин";
-
-					//	// Save Excel package to a file
-					//	string filePath = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
-
-					//	if (chkResultsFileNameAddDate.Checked)
-					//	{
-					//		// Получаем текущую дату и время
-					//		string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
-
-					//		// Разделяем имя файла и расширение
-					//		string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
-					//		string fileExtension = Path.GetExtension(filePath);
-
-					//		// Формируем новое имя файла
-
-					//		if (!string.IsNullOrEmpty(_config))
-					//		{
-					//			filePath = $"{fileNameWithoutExtension}_{_config}_{currentDateTime}{fileExtension}";
-					//		}
-					//		else
-					//		{
-					//			filePath = $"{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
-					//		}
-
-					//	}
-
-					//	Log.Write($"Файл выгружается в : {filePath}");
-					//	FileInfo excelFile = new(filePath);
-					//	excelPackage.SaveAs(excelFile);
-
-					//	worksheet.InsertRow(2, 1); // Вставляем одну пустую строку после первой строки
-					//	worksheet.InsertRow(3, 1); // Вставляем одну пустую строку после второй строки
-
-					//	// Чтение XML файла для получения кодов sensor и их названий
-
-					//	Dictionary<string, string> sensorNames = [];
-					//	foreach (XmlNode sensorNode in sensorNodes)
-					//	{
-					//		string id = sensorNode.Attributes["Id"].Value;
-					//		string name = sensorNode.Attributes["UserDescription"].Value;
-					//		sensorNames[id] = name;
-					//	}
-
-					//	Dictionary<string, string> sensorPrefix = [];
-					//	foreach (XmlNode sensorNode in sensorNodes)
-					//	{
-					//		string id = sensorNode.Attributes["Id"].Value;
-					//		string name = sensorNode.Attributes["Prefix"].Value;
-					//		sensorPrefix[id] = name;
-					//	}
-
-					//	// Переименование столбцов на основе кодов sensor и их названий
-					//	for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
-					//	{
-					//		string header = worksheet.Cells[1, col].Text;
-					//		if (header.StartsWith("S") && sensorNames.ContainsKey(header.Substring(1)))
-					//		{
-					//			worksheet.Cells[1, col].Value = sensorNames[header.Substring(1)];
-					//			string sprefix = sensorPrefix[header.Substring(1)];
-					//			if (int.TryParse(sprefix, out int prefix))
-					//			{
-					//				worksheet.Cells[3, col].Value = prefix;
-					//			}
-					//			else
-					//			{
-					//				worksheet.Cells[3, col].Value = 0;
-					//			}
-					//		}
-					//	}
-
-					//	// Добавление второй строки с счетчиком столбов
-					//	for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
-					//	{
-					//		worksheet.Cells[2, col].Value = col - 1; // Устанавливаем значение счетчика столбов
-					//	}
-					//	worksheet.Cells["A2"].Style.Numberformat.Format = "@";
-
-					//	// Вставка текста в ячейку A3 с переносами строк
-					//	worksheet.Cells["A3"].Value = "Время\nПризнак обработки:\n1-среднее,\n2-сложение,\n3-признак времени\n4 - признак температуры";
-					//	worksheet.Cells["A3"].Style.WrapText = true; // Включаем перенос текста
-					//	worksheet.Cells["A3"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center; // Выравниваем текст по центру
-
-					//	// Установить признак времени у времени
-					//	worksheet.Cells["B3"].Value = 3;
-					//	worksheet.Cells["C3"].Value = 3;
-					//	worksheet.Cells["D3"].Value = 3;
-					//	worksheet.Cells["E3"].Value = 3;
-					//	worksheet.Cells["F3"].Value = 3;
-
-					//	// Добавление тонкой линии после первого столбца
-					//	worksheet.Column(2).Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-					//	// Добавление тонкой линии после первой строки
-					//	worksheet.Row(2).Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
-
-					//	// Сохранение изменений в Excel файл
-					//	excelPackage.Save();
-					//}
 				}
 				catch (SqlException e)
 				{
 					Log.Write(string.Concat("Возникла ошибка во время выполнения sql-запроса: ", e.ToString()));
 					MessageBox.Show(e.ToString());
+					cmdExport.Enabled = true;
 				}
 			}
 		}
 
-		private void ExportToExcel() 
+		private async Task ExportToExcelAsync() 
 		{
 			try
 			{
@@ -821,7 +700,7 @@ namespace SQLBuilder
 				// Чтение данных из файла
 				string strSQL = reader.ReadToEnd();
 
-				Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
+				await Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
 				rtbLog.Text = Log.Read();
 			}
 			catch (FileNotFoundException fnfEx)
@@ -839,7 +718,6 @@ namespace SQLBuilder
 
 			async Task Main(string sDataSource, string sUserID, string sPassword, string sInitialCatalog, bool bIntegratedSecurity, bool bTrustServerCertificate, string strSQL)
 			{
-
 				cmdExport.Enabled = false;
 
 				SqlConnectionStringBuilder builder = new()
@@ -936,12 +814,14 @@ namespace SQLBuilder
 						// Обработка ошибок SQL
 						Console.WriteLine("Произошла ошибка SQL: " + sqlEx.Message);
 						// Дополнительные действия, например, логирование ошибки
+						cmdExport.Enabled = true;
 					}
 					catch (Exception ex)
 					{
 						// Обработка других исключений
 						Console.WriteLine("Произошла ошибка: " + ex.Message);
 						// Дополнительные действия, например, логирование ошибки
+						cmdExport.Enabled = true;
 					}
 
 					stopwatch.Stop();
@@ -986,28 +866,37 @@ namespace SQLBuilder
 						worksheet.Cells["F1"].Value = "мин";
 
 						// Save Excel package to a file
-						string filePath = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
+						string filePath = iniFile.ReadKey("FILENAME", "PathToResultFolder");
+						// Получаем текущую дату и время
+						string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
+
+						// Разделяем имя файла и расширение
+						string fileNameWithoutExtension = "output";
+						string fileExtension = ".csv";
 
 						if (chkResultsFileNameAddDate.Checked)
 						{
-							// Получаем текущую дату и время
-							string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
-
-							// Разделяем имя файла и расширение
-							string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
-							string fileExtension = Path.GetExtension(filePath);
-
 							// Формируем новое имя файла
-
 							if (!string.IsNullOrEmpty(_config))
 							{
-								filePath = $"{fileNameWithoutExtension}_{_config}_{currentDateTime}{fileExtension}";
+								filePath = $"{filePath}\\{fileNameWithoutExtension}_{_config}_{currentDateTime}{fileExtension}";
 							}
 							else
 							{
-								filePath = $"{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
+								filePath = $"{filePath}\\{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
 							}
-
+						}
+						else
+						{
+							// Формируем новое имя файла
+							if (!string.IsNullOrEmpty(_config))
+							{
+								filePath = $"{filePath}\\{fileNameWithoutExtension}_{_config}{fileExtension}";
+							}
+							else
+							{
+								filePath = $"{filePath}\\{fileNameWithoutExtension}{fileExtension}";
+							}
 						}
 
 						Log.Write($"Файл выгружается в : {filePath}");
@@ -1098,11 +987,12 @@ namespace SQLBuilder
 				{
 					Log.Write(string.Concat("Возникла ошибка во время выполнения sql-запроса: ", e.ToString()));
 					MessageBox.Show(e.ToString());
+					cmdExport.Enabled = true;
 				}
 			}
 		}
 
-		private void Timer_Tick(object sender, EventArgs e)
+		private void Timer_Tick(object? sender, EventArgs e)
 		{
 			TimeSpan elapsedTime = stopwatch.Elapsed;
 			UpdateTimeLabel(elapsedTime.TotalSeconds.ToString("F2")); // Обновляем метку на форме
@@ -1290,15 +1180,21 @@ namespace SQLBuilder
 
 		private void cmdResultsFileName_Click(object sender, EventArgs e)
 		{
-			ofdResultsFileName.Title = "Пожалуйста выберите файл Microsoft Excel";
-			ofdResultsFileName.InitialDirectory = @"C:\";
-			ofdResultsFileName.Filter = "Файлы Microsoft Excel|*.xlsx";
-			ofdResultsFileName.InitialDirectory = Application.StartupPath;
-			if (!string.IsNullOrEmpty(txtResultsFileName.Text))
-				ofdResultsFileName.FileName = txtResultsFileName.Text;
-			if (ofdResultsFileName.ShowDialog() == DialogResult.OK)
-				Log.Write(string.Concat("Выбран файл Microsoft Excel для хранения результатов работы: ", ofdResultsFileName.FileName));
-			txtResultsFileName.Text = ofdResultsFileName.FileName;
+
+			fbdResult.Description = "Выберите папку";
+			fbdResult.ShowNewFolderButton = true; // Позволяет создавать новые папки
+
+			// Показать диалог и проверить результат
+			if (fbdResult.ShowDialog() == DialogResult.OK)
+			{
+				string selectedPath = fbdResult.SelectedPath;
+				txtResultsFileName.Text = selectedPath;
+				Console.WriteLine($"Выбрана папка: {selectedPath}");
+			}
+			else
+			{
+				Console.WriteLine("Выбор папки отменен.");
+			}
 		}
 
 		private void cmdTasks_Click(object sender, EventArgs e)
@@ -1389,17 +1285,24 @@ namespace SQLBuilder
 				RedirectStandardError = true
 			};
 
-			using Process process = Process.Start(startInfo);
-			process.WaitForExit();
-			int exitCode = process.ExitCode;
-
-			if (exitCode == 0)
+			using Process? process = Process.Start(startInfo);
+			if (process != null)
 			{
-				Console.WriteLine($"Задача '{taskName}' успешно удалена.");
+				process.WaitForExit();
+				int exitCode = process.ExitCode;
+
+				if (exitCode == 0)
+				{
+					Console.WriteLine($"Задача '{taskName}' успешно удалена.");
+				}
+				else
+				{
+					Console.WriteLine($"Неудалось удалить задачу '{taskName}'. Код ошибки: {exitCode}");
+				}
 			}
 			else
 			{
-				Console.WriteLine($"Неудалось удалить задачу '{taskName}'. Код ошибки: {exitCode}");
+				Console.WriteLine("Не удалось запустить процесс.");
 			}
 		}
 

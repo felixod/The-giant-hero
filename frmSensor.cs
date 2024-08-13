@@ -44,9 +44,8 @@ namespace SQLBuilder
 			worker.RunWorkerAsync();
 		}
 
-		private void Worker_DoWork(object sender, DoWorkEventArgs e)
+		private void Worker_DoWork(object? sender, DoWorkEventArgs e)
 		{
-			// connectionString = "Server=MSSQL02\\DB02;Database=MSCADA;Trusted_Connection=True;Integrated Security=true;TrustServerCertificate=True";
 			// Использовать конфигурационный файл с префиксом, если префикс передан
 			IniFile iniFile;
 			if (!string.IsNullOrEmpty(_config))
@@ -97,7 +96,7 @@ namespace SQLBuilder
 
 		}
 
-		private void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		private void Worker_RunWorkerCompleted(object? sender, RunWorkerCompletedEventArgs e)
 		{
 			if (e.Error != null)
 			{
@@ -105,7 +104,11 @@ namespace SQLBuilder
 			}
 			else
 			{
-				DataTable dataTable = (DataTable)e.Result;
+				DataTable? dataTable = (DataTable?)e.Result;
+				if (dataTable == null)
+				{
+					throw new ArgumentNullException(nameof(dataTable), "DataTable не может быть null.");
+				}
 				FillListView(dataTable);
 			}
 		}
@@ -118,8 +121,18 @@ namespace SQLBuilder
 			{
 				foreach (DataRow row in dataTable.Rows)
 				{
-					ListViewItem item = new(row.ItemArray.Select(x => x.ToString()).ToArray());
-					listView.Items.Add(item);
+					if (row.ItemArray != null && row.ItemArray.Length > 0)
+					{
+						ListViewItem item = new(row.ItemArray.Select(x => x?.ToString() ?? string.Empty).ToArray());
+						listView.Items.Add(item);
+						// Дальнейшая обработка item
+					}
+					else
+					{
+						// Обработка случая, когда ItemArray пуст или null
+						Console.WriteLine("ItemArray пуст или не задан.");
+					}
+					
 				}
 			}
 
@@ -133,12 +146,13 @@ namespace SQLBuilder
 			doc.Load(Program._department);
 
 			// Находим узел, в который хотим добавить новый Sensor
-			XmlNode parentNode = doc.SelectSingleNode($"//Node[@Id='{nodeId}']");
+			XmlNode? parentNode = doc.SelectSingleNode($"//Node[@Id='{nodeId}']");
 
 			if (parentNode != null)
 			{
 
-				XmlNode sensorNode = doc.SelectSingleNode($"//Sensor[@Id='{Id}']");
+				XmlNode? sensorNode = doc.SelectSingleNode($"//Sensor[@Id='{Id}']");
+
 
 				if (sensorNode == null)
 				{

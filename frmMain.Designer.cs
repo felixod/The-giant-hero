@@ -100,6 +100,7 @@
 			cmdApply = new Button();
 			lblVersion = new Label();
 			ofdResultsFileName = new OpenFileDialog();
+			fbdResult = new FolderBrowserDialog();
 			tabMain.SuspendLayout();
 			tpgSKADA.SuspendLayout();
 			groupBox1.SuspendLayout();
@@ -594,9 +595,9 @@
 			lblResultsFileName.AutoSize = true;
 			lblResultsFileName.Location = new Point(6, 57);
 			lblResultsFileName.Name = "lblResultsFileName";
-			lblResultsFileName.Size = new Size(156, 15);
+			lblResultsFileName.Size = new Size(161, 15);
 			lblResultsFileName.TabIndex = 18;
-			lblResultsFileName.Text = "Имя файла для результата:";
+			lblResultsFileName.Text = "Имя папки для результатов:";
 			// 
 			// chkTrustServerCertificate
 			// 
@@ -893,5 +894,6 @@
 		internal TextBox txtConfigNameId;
 		internal Label lblFormat;
 		private ComboBox cbxFormat;
+		private FolderBrowserDialog fbdResult;
 	}
 }

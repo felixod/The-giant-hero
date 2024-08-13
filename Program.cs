@@ -16,34 +16,12 @@ namespace SQLBuilder
 		[STAThread]
 		static void Main(string[] args)
 		{
-			// To customize application configuration such as set high DPI settings or default font,
-			// see https://aka.ms/applicationconfiguration.
-			//if (args.Length > 0 && args[0] == "/s")
-			//{
-			//	Log.Separate();
-			//	Log.Write("Запуск приложения в тихом режиме");
-
-			//	string workingDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			//	// Установка рабочей папки
-			//	Directory.SetCurrentDirectory(workingDirectory);
-
-			//	ApplicationConfiguration.Initialize();
-			//	Form frm = new frmMain(true)
-			//	{
-			//		Visible = false,
-			//		ShowInTaskbar = false,
-			//		WindowState = FormWindowState.Minimized
-			//};
-			//	Application.Run(frm);
-			//}
-			//else
-			//{
-			//	ApplicationConfiguration.Initialize();
-			//	Application.Run(new frmMain(false));
-			//}
-
-			string workingDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			string? workingDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 			// Установка рабочей папки
+			if (string.IsNullOrEmpty(workingDirectory))
+			{
+				throw new InvalidOperationException("Рабочая директория не может быть null или пустой.");
+			}
 			Directory.SetCurrentDirectory(workingDirectory);
 
 			if (args.Length > 0)
@@ -88,7 +66,6 @@ namespace SQLBuilder
 						else
 						{
 							Console.WriteLine("Имя конфигурации не задано или пусто.");
-							// MessageBox.Show (configurationName);
 							i++; // Пропускаем следующий аргумент, так как это название конфигурации
 						}
 					}

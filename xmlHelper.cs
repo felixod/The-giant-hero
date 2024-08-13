@@ -30,6 +30,11 @@ namespace SQLBuilder
 			if (File.Exists(fileName))
 			{
 				xmlDoc.Load(fileName);
+				// Проверка на наличие корневого элемента
+				if (xmlDoc.DocumentElement == null)
+				{
+					throw new InvalidOperationException("XML-документ не содержит корневого элемента.");
+				}
 				TreeNode rootNode = CreateTreeNode(xmlDoc.DocumentElement);
 				treeView.Nodes.Add(rootNode);
 			}
