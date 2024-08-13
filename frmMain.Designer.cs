@@ -71,6 +71,8 @@
 			lblInterval = new Label();
 			tpgFileName = new TabPage();
 			gpbFileName = new GroupBox();
+			lblFormat = new Label();
+			cbxFormat = new ComboBox();
 			txtConfigNameId = new TextBox();
 			txtConfigName = new TextBox();
 			lblConfigName = new Label();
@@ -488,6 +490,8 @@
 			// 
 			// gpbFileName
 			// 
+			gpbFileName.Controls.Add(lblFormat);
+			gpbFileName.Controls.Add(cbxFormat);
 			gpbFileName.Controls.Add(txtConfigNameId);
 			gpbFileName.Controls.Add(txtConfigName);
 			gpbFileName.Controls.Add(lblConfigName);
@@ -514,6 +518,25 @@
 			gpbFileName.TabIndex = 2;
 			gpbFileName.TabStop = false;
 			gpbFileName.Text = "Имя файла запроса";
+			// 
+			// lblFormat
+			// 
+			lblFormat.AutoSize = true;
+			lblFormat.Location = new Point(6, 343);
+			lblFormat.Name = "lblFormat";
+			lblFormat.Size = new Size(107, 15);
+			lblFormat.TabIndex = 26;
+			lblFormat.Text = "Формат выгрузки:";
+			// 
+			// cbxFormat
+			// 
+			cbxFormat.DropDownStyle = ComboBoxStyle.DropDownList;
+			cbxFormat.FormattingEnabled = true;
+			cbxFormat.Items.AddRange(new object[] { "Microsoft Excel (xlsx)", "Текстовый формат (csv)" });
+			cbxFormat.Location = new Point(182, 340);
+			cbxFormat.Name = "cbxFormat";
+			cbxFormat.Size = new Size(395, 23);
+			cbxFormat.TabIndex = 25;
 			// 
 			// txtConfigNameId
 			// 
@@ -868,5 +891,7 @@
 		private ToolStripMenuItem configToolStripmenuItem;
 		private ToolStripSeparator toolStripSeparator1;
 		internal TextBox txtConfigNameId;
+		internal Label lblFormat;
+		private ComboBox cbxFormat;
 	}
 }

@@ -87,7 +87,6 @@ namespace SQLBuilder
 			if (iniFile.KeyExists("FILENAME", "Config_Name"))
 			{
 				txtConfigName.Text = iniFile.ReadKey("FILENAME", "Config_Name");
-				this.Text = $"SQLBuilder ({txtConfigName.Text})";
 			}
 			else
 				txtConfigName.Text = "";
@@ -142,6 +141,23 @@ namespace SQLBuilder
 				chkTrustServerCertificate.Checked = Convert.ToBoolean(iniFile.ReadKey("FILENAME", "SQL_DB_TrustServerCertificate"));
 			else
 				chkTrustServerCertificate.Checked = true;
+			// Загружаем из INI-файла формат, в который будет осуществляться экспорт
+			if (iniFile.KeyExists("FILENAME", "Format_Export"))
+			{
+				string formatExportValue = iniFile.ReadKey("FILENAME", "Format_Export");
+				if (int.TryParse(formatExportValue, out int selectedIndex))
+				{
+					cbxFormat.SelectedIndex = selectedIndex;
+				}
+				else
+				{
+					cbxFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию, если парсинг не удался
+				}
+			}
+			else
+			{
+				cbxFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию, если ключ не существует
+			}
 
 			LoadDepartments();
 
@@ -173,6 +189,8 @@ namespace SQLBuilder
 				this.WindowState = FormWindowState.Minimized;
 				cmdExport_Click(sender, e);
 			}
+
+			this.Text = $"{txtConfigName.Text} (Конфигурация: {Program._department})";
 		}
 
 
@@ -340,6 +358,7 @@ namespace SQLBuilder
 			iniFile.WriteKey("FILENAME", "SQL_DB_IntegratedSecurity", chkIntegratedSecurity.Checked.ToString());
 			iniFile.WriteKey("FILENAME", "SQL_DB_TrustServerCertificate", chkTrustServerCertificate.Checked.ToString());
 			iniFile.WriteKey("FILENAME", "XLSX_File_Name_Date", chkResultsFileNameAddDate.Checked.ToString());
+			iniFile.WriteKey("FILENAME", "Format_Export", cbxFormat.SelectedIndex.ToString());
 			Log.Write("Запись параметров в ini-файл завершена");
 		}
 
@@ -357,6 +376,60 @@ namespace SQLBuilder
 		}
 
 		private void cmdExport_Click(object sender, EventArgs e)
+		{
+			if (cbxFormat.SelectedIndex == 0)
+			{
+				Log.Write("Выгружаем в файл формата Microsoft Excel");
+				ExportToExcel();
+			}
+			else
+			{
+				Log.Write("Выгружаем в файл формата CSV");
+				ExportToCSV();
+			}
+		}
+
+		public static void WriteDataTableToCsv(DataTable dataTable, string filePath)
+		{
+			try
+			{
+				using (StreamWriter writer = new(filePath))
+				{
+					// Запись заголовков столбцов
+					for (int i = 0; i < dataTable.Columns.Count; i++)
+					{
+						writer.Write(dataTable.Columns[i]);
+						if (i < dataTable.Columns.Count - 1)
+						{
+							writer.Write(","); // Разделитель
+						}
+					}
+					writer.WriteLine(); // Переход на новую строку
+
+					// Запись данных строк
+					foreach (DataRow row in dataTable.Rows)
+					{
+						for (int i = 0; i < dataTable.Columns.Count; i++)
+						{
+							writer.Write(row[i].ToString());
+							if (i < dataTable.Columns.Count - 1)
+							{
+								writer.Write(","); // Разделитель
+							}
+						}
+						writer.WriteLine(); // Переход на новую строку
+					}
+				}
+
+				Console.WriteLine($"Данные успешно записаны в файл: {filePath}");
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Произошла ошибка при записи в CSV: {ex.Message}");
+			}
+		}
+
+		private void ExportToCSV()
 		{
 			try
 			{
@@ -427,7 +500,391 @@ namespace SQLBuilder
 					// Read SQL query from file
 					// Использовать конфигурационный файл с префиксом, если префикс передан
 					IniFile iniFile;
-					if (_config != null)
+					if (!string.IsNullOrEmpty(_config))
+					{
+						iniFile = new($"config_{_config}.ini");
+					}
+					else
+					{
+						iniFile = new("config.ini");
+					}
+					using (StreamReader sr = new(iniFile.ReadKey("FILENAME", "SQL_File_Name")))
+					{
+						sqlQuery = sr.ReadToEnd();
+					}
+
+					SqlCommand command = new(sqlQuery, connection)
+					{
+						CommandTimeout = Int32.MaxValue // Установите значение в секундах
+					};
+					command.Parameters.AddWithValue("@selected_ids", selectedIds);
+					command.Parameters.AddWithValue("@start_date", Convert.ToDateTime(iniFile.ReadKey("INTERVAL", "Start_data")));
+					command.Parameters.AddWithValue("@end_date", Convert.ToDateTime(iniFile.ReadKey("INTERVAL", "Final_data")));
+
+					SqlDataAdapter adapter = new(command);
+					DataTable dataTable = new();
+
+					Log.Write("Начинаем выполнение запроса. Ожидайте, запрос может выполняться ОЧЕНЬ продолжительное время.");
+					TextBoxRead();
+					int i = tabMain.SelectedIndex;
+					tabMain.SelectedIndex = 4;
+					// Подписываемся на событие RowsUpdated
+					adapter.RowUpdated += Adapter_RowUpdated;
+
+					//Stopwatch stopwatch = new();
+					stopwatch.Reset();
+					stopwatch.Start();
+
+					timer = new System.Windows.Forms.Timer
+					{
+						Interval = 5000 // 5 секунд
+					};
+					timer.Tick += Timer_Tick;
+					timer.Start();
+
+					// Заполняем DataTable
+					try
+					{
+						await Task.Run(() => adapter.Fill(dataTable));
+					}
+					catch (SqlException sqlEx)
+					{
+						// Обработка ошибок SQL
+						Console.WriteLine("Произошла ошибка SQL: " + sqlEx.Message);
+						// Дополнительные действия, например, логирование ошибки
+					}
+					catch (Exception ex)
+					{
+						// Обработка других исключений
+						Console.WriteLine("Произошла ошибка: " + ex.Message);
+						// Дополнительные действия, например, логирование ошибки
+					}
+
+					stopwatch.Stop();
+
+					timer.Stop();
+					TimeSpan elapsedTime = stopwatch.Elapsed;
+
+					Log.Write($"Время выполнения запроса: {elapsedTime.TotalSeconds} секунд");
+					TextBoxRead();
+
+					// Отписываемся от события RowsUpdated
+					adapter.RowUpdated -= Adapter_RowUpdated;
+
+					tabMain.SelectedIndex = i;
+
+					// Save Excel package to a file
+					string filePath = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
+
+					if (chkResultsFileNameAddDate.Checked)
+					{
+						// Получаем текущую дату и время
+						string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
+
+						// Разделяем имя файла и расширение
+						string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+						string fileExtension = ".csv";
+
+						// Формируем новое имя файла
+
+						if (!string.IsNullOrEmpty(_config))
+						{
+							filePath = $"{fileNameWithoutExtension}_{_config}_{currentDateTime}{fileExtension}";
+						}
+						else
+						{
+							filePath = $"{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
+						}
+
+					}
+
+					WriteDataTableToCsv(dataTable, filePath);
+
+					Dictionary<string, string> sensorNames = [];
+					foreach (XmlNode sensorNode in sensorNodes)
+					{
+						string id = sensorNode.Attributes["Id"].Value;
+						string name = sensorNode.Attributes["UserDescription"].Value;
+						sensorNames[id] = name;
+					}
+
+					Dictionary<string, string> sensorPrefix = [];
+					foreach (XmlNode sensorNode in sensorNodes)
+					{
+						string id = sensorNode.Attributes["Id"].Value;
+						string name = sensorNode.Attributes["Prefix"].Value;
+						sensorPrefix[id] = name;
+					}
+
+					// Чтение данных из CSV
+					List<string[]> csvData = [];
+					using (StreamReader reader = new(filePath))
+					{
+						while (!reader.EndOfStream)
+						{
+							string line = reader.ReadLine();
+							string[] values = line.Split(',');
+							csvData.Add(values);
+						}
+					}
+
+					// Изменение заголовков столбцов
+					if (csvData.Count > 0)
+					{
+						for (int col = 0; col < csvData[0].Length; col++)
+						{
+							string header = csvData[0][col];
+							if (header.StartsWith("S") && sensorNames.ContainsKey(header.Substring(1)))
+							{
+								csvData[0][col] = sensorNames[header.Substring(1)];
+								string sprefix = sensorPrefix[header.Substring(1)];
+								if (int.TryParse(sprefix, out int prefix))
+								{
+									// Здесь можно добавить логику для записи префикса в нужную строку
+									// Например, в строку 3 (индекс 2)
+									if (csvData.Count > 2)
+									{
+										csvData[2][col] = prefix.ToString();
+									}
+								}
+								else
+								{
+									if (csvData.Count > 2)
+									{
+										csvData[2][col] = "0";
+									}
+								}
+							}
+						}
+					}
+
+					// Запись измененных данных обратно в CSV
+					using (StreamWriter writer = new StreamWriter(filePath))
+					{
+						foreach (var row in csvData)
+						{
+							writer.WriteLine(string.Join(",", row));
+						}
+					}
+
+					Log.Write("Выгрузка успешно завершена.");
+					TextBoxRead();
+					if (!_silent)
+					{
+						MessageBox.Show("Выгрузка успешно завершена");
+					}
+					cmdExport.Enabled = true;
+					if (_silent)
+					{
+						Application.Exit();
+					}
+
+
+					//// Set the LicenseContext
+					//ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+					//// Export DataTable to Excel
+					//using (ExcelPackage excelPackage = new())
+					//{
+					//	ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add("Sheet1");
+					//	// Load data from DataTable to Excel worksheet
+					//	worksheet.Cells["A1"].LoadFromDataTable(dataTable, true);
+					//	worksheet.Column(1).Style.Numberformat.Format = "dd.mm.yyyy HH:mm";
+					//	worksheet.Row(1).Height = 75;
+					//	// Установка выравнивания текста по центру и включение переноса текста
+					//	worksheet.Row(1).Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+					//	worksheet.Row(1).Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+					//	worksheet.Row(1).Style.WrapText = true;
+					//	// Установка ширины всех колонок
+					//	for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+					//	{
+					//		worksheet.Column(col).Width = 11; // Установить ширину колонки на 20
+					//	}
+					//	worksheet.Column(1).Width = 20;
+					//	worksheet.Cells["A1"].Value = "Время";
+					//	worksheet.Cells["B1"].Value = "день";
+					//	worksheet.Cells["C1"].Value = "месяц";
+					//	worksheet.Cells["D1"].Value = "год";
+					//	worksheet.Cells["E1"].Value = "час";
+					//	worksheet.Cells["F1"].Value = "мин";
+
+					//	// Save Excel package to a file
+					//	string filePath = iniFile.ReadKey("FILENAME", "XLSX_File_Name");
+
+					//	if (chkResultsFileNameAddDate.Checked)
+					//	{
+					//		// Получаем текущую дату и время
+					//		string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
+
+					//		// Разделяем имя файла и расширение
+					//		string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+					//		string fileExtension = Path.GetExtension(filePath);
+
+					//		// Формируем новое имя файла
+
+					//		if (!string.IsNullOrEmpty(_config))
+					//		{
+					//			filePath = $"{fileNameWithoutExtension}_{_config}_{currentDateTime}{fileExtension}";
+					//		}
+					//		else
+					//		{
+					//			filePath = $"{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
+					//		}
+
+					//	}
+
+					//	Log.Write($"Файл выгружается в : {filePath}");
+					//	FileInfo excelFile = new(filePath);
+					//	excelPackage.SaveAs(excelFile);
+
+					//	worksheet.InsertRow(2, 1); // Вставляем одну пустую строку после первой строки
+					//	worksheet.InsertRow(3, 1); // Вставляем одну пустую строку после второй строки
+
+					//	// Чтение XML файла для получения кодов sensor и их названий
+
+					//	Dictionary<string, string> sensorNames = [];
+					//	foreach (XmlNode sensorNode in sensorNodes)
+					//	{
+					//		string id = sensorNode.Attributes["Id"].Value;
+					//		string name = sensorNode.Attributes["UserDescription"].Value;
+					//		sensorNames[id] = name;
+					//	}
+
+					//	Dictionary<string, string> sensorPrefix = [];
+					//	foreach (XmlNode sensorNode in sensorNodes)
+					//	{
+					//		string id = sensorNode.Attributes["Id"].Value;
+					//		string name = sensorNode.Attributes["Prefix"].Value;
+					//		sensorPrefix[id] = name;
+					//	}
+
+					//	// Переименование столбцов на основе кодов sensor и их названий
+					//	for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+					//	{
+					//		string header = worksheet.Cells[1, col].Text;
+					//		if (header.StartsWith("S") && sensorNames.ContainsKey(header.Substring(1)))
+					//		{
+					//			worksheet.Cells[1, col].Value = sensorNames[header.Substring(1)];
+					//			string sprefix = sensorPrefix[header.Substring(1)];
+					//			if (int.TryParse(sprefix, out int prefix))
+					//			{
+					//				worksheet.Cells[3, col].Value = prefix;
+					//			}
+					//			else
+					//			{
+					//				worksheet.Cells[3, col].Value = 0;
+					//			}
+					//		}
+					//	}
+
+					//	// Добавление второй строки с счетчиком столбов
+					//	for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+					//	{
+					//		worksheet.Cells[2, col].Value = col - 1; // Устанавливаем значение счетчика столбов
+					//	}
+					//	worksheet.Cells["A2"].Style.Numberformat.Format = "@";
+
+					//	// Вставка текста в ячейку A3 с переносами строк
+					//	worksheet.Cells["A3"].Value = "Время\nПризнак обработки:\n1-среднее,\n2-сложение,\n3-признак времени\n4 - признак температуры";
+					//	worksheet.Cells["A3"].Style.WrapText = true; // Включаем перенос текста
+					//	worksheet.Cells["A3"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center; // Выравниваем текст по центру
+
+					//	// Установить признак времени у времени
+					//	worksheet.Cells["B3"].Value = 3;
+					//	worksheet.Cells["C3"].Value = 3;
+					//	worksheet.Cells["D3"].Value = 3;
+					//	worksheet.Cells["E3"].Value = 3;
+					//	worksheet.Cells["F3"].Value = 3;
+
+					//	// Добавление тонкой линии после первого столбца
+					//	worksheet.Column(2).Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+					//	// Добавление тонкой линии после первой строки
+					//	worksheet.Row(2).Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+
+					//	// Сохранение изменений в Excel файл
+					//	excelPackage.Save();
+					//}
+				}
+				catch (SqlException e)
+				{
+					Log.Write(string.Concat("Возникла ошибка во время выполнения sql-запроса: ", e.ToString()));
+					MessageBox.Show(e.ToString());
+				}
+			}
+		}
+
+		private void ExportToExcel() 
+		{
+			try
+			{
+				using StreamReader reader = new(txtSQLFileName.Text);
+				// Чтение данных из файла
+				string strSQL = reader.ReadToEnd();
+
+				Main(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL);
+				rtbLog.Text = Log.Read();
+			}
+			catch (FileNotFoundException fnfEx)
+			{
+				// Обработка случая, когда файл не найден
+				MessageBox.Show("Файл не найден: " + fnfEx.Message);
+				// Дополнительные действия, например, уведомление пользователя
+			}
+			catch (Exception ex)
+			{
+				// Обработка других исключений
+				MessageBox.Show("Произошла ошибка: " + ex.Message);
+				// Дополнительные действия, например, логирование ошибки
+			}
+
+			async Task Main(string sDataSource, string sUserID, string sPassword, string sInitialCatalog, bool bIntegratedSecurity, bool bTrustServerCertificate, string strSQL)
+			{
+
+				cmdExport.Enabled = false;
+
+				SqlConnectionStringBuilder builder = new()
+				{
+					DataSource = sDataSource,
+					UserID = sUserID,
+					Password = sPassword,
+					InitialCatalog = sInitialCatalog,
+					IntegratedSecurity = bIntegratedSecurity,
+					TrustServerCertificate = bTrustServerCertificate
+				};
+				Log.Write(string.Concat("Источник данных (DataSource): ", sDataSource));
+				Log.Write(string.Concat("Имя пользователя (UserID): ", sUserID));
+				Log.Write(string.Concat("Пароль (Password): ", "*********"));
+				Log.Write(string.Concat("База данных (InitialCatalog): ", sInitialCatalog));
+				Log.Write(string.Concat("SQL-запрос к базе данных: ", strSQL));
+				using SqlConnection connection = new(builder.ConnectionString);
+				try
+				{
+					await connection.OpenAsync();
+
+					string xmlFilePath = Program._department;
+					string selectedIds = "";
+
+					XmlDocument xmlDoc = new();
+					xmlDoc.Load(xmlFilePath);
+
+					XmlNodeList sensorNodes = xmlDoc.SelectNodes("//Sensor");
+					foreach (XmlNode sensorNode in sensorNodes)
+					{
+						string sensorId = sensorNode.Attributes["Id"].Value;
+						selectedIds += sensorId + ",";
+					}
+
+					// Remove the trailing comma
+					if (!string.IsNullOrEmpty(selectedIds))
+					{
+						selectedIds = selectedIds.TrimEnd(',');
+					}
+
+					string sqlQuery;
+					// Read SQL query from file
+					// Использовать конфигурационный файл с префиксом, если префикс передан
+					IniFile iniFile;
+					if (!string.IsNullOrEmpty(_config))
 					{
 						iniFile = new($"config_{_config}.ini");
 					}
@@ -541,7 +998,16 @@ namespace SQLBuilder
 							string fileExtension = Path.GetExtension(filePath);
 
 							// Формируем новое имя файла
-							filePath = $"{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
+
+							if (!string.IsNullOrEmpty(_config))
+							{
+								filePath = $"{fileNameWithoutExtension}_{_config}_{currentDateTime}{fileExtension}";
+							}
+							else
+							{
+								filePath = $"{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
+							}
+
 						}
 
 						Log.Write($"Файл выгружается в : {filePath}");
@@ -844,7 +1310,17 @@ namespace SQLBuilder
 			{
 				// Выполните код, требующий прав администратора
 				// Путь к исполняемому файлу, который нужно запускать
-				string exePath = System.Windows.Forms.Application.ExecutablePath + " /s";
+
+				string exePath;
+
+				if (!string.IsNullOrEmpty(_config))
+				{
+					exePath = System.Windows.Forms.Application.ExecutablePath + " /s" + $" /c {_config}";
+				}
+				else
+				{
+					exePath = System.Windows.Forms.Application.ExecutablePath + " /s";
+				}
 
 				// Получаем выбранный день недели
 				int dayOfWeek = (int)nudExecPeriod.Value;
@@ -885,8 +1361,6 @@ namespace SQLBuilder
 				// Пользователь не является администратором
 				MessageBox.Show("Запустите приложение с правами администратора.");
 			}
-
-
 		}
 
 		static string GetDayOfWeekString(int dayOfWeek)
@@ -939,74 +1413,3 @@ namespace SQLBuilder
 		}
 	}
 }
-
-	public class TreeViewXmlLoader
-	{
-		// Метод для загрузки TreeView из XML
-		public static void LoadTreeViewFromXml(System.Windows.Forms.TreeView treeView, string fileName)
-		{
-			XmlDocument xmlDoc = new();
-			if (File.Exists(fileName))
-			{
-				xmlDoc.Load(fileName);
-				TreeNode rootNode = CreateTreeNode(xmlDoc.DocumentElement);
-				treeView.Nodes.Add(rootNode);
-			}
-			else
-			{
-				CreateEmptyXmlFile(fileName);
-				LoadTreeViewFromXml(treeView, fileName);
-			}
-		}
-
-		private static void CreateEmptyXmlFile(string filePath)
-		{
-			XmlDocument doc = new();
-			// Создание объявления XML
-			XmlDeclaration? xmlDeclaration = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
-			XmlElement? root = doc.DocumentElement;
-			doc.InsertBefore(xmlDeclaration, root);
-
-			// Создание корневого элемента
-			XmlElement rootElement = doc.CreateElement("Node");
-			rootElement.SetAttribute("Name", "Святогор");
-			rootElement.SetAttribute("Prefix", "");
-			rootElement.SetAttribute("Id", "0");
-			rootElement.SetAttribute("Code", "");
-
-			doc.AppendChild(rootElement);
-
-			// Сохранение файла
-			doc.Save(filePath);
-		}
-
-		// Рекурсивный метод для создания TreeNode из XML узла
-		private static TreeNode CreateTreeNode(XmlNode xmlNode)
-		{
-			TreeNode treeNode = new();
-			if (xmlNode.Attributes != null && xmlNode.Name == "Node")
-			{
-				XmlAttribute? nameAttribute = xmlNode.Attributes["Name"];
-				if (nameAttribute != null)
-				{
-					treeNode.Name = nameAttribute.Value;
-					treeNode.Text = nameAttribute.Value; // Используем Name для свойства Text
-				}
-
-				XmlAttribute? codeAttribute = xmlNode.Attributes["Id"];
-				if (codeAttribute != null)
-				{
-					treeNode.Tag = int.Parse(codeAttribute.Value); // Сохраняем Id в Tag
-				}
-			}
-
-			foreach (XmlNode childNode in xmlNode.ChildNodes)
-			{
-				if (childNode.Name == "Node")
-				{
-					treeNode.Nodes.Add(CreateTreeNode(childNode)); // Рекурсивно добавляем дочерние узлы
-				}
-			}
-			return treeNode;
-		}
-	}
