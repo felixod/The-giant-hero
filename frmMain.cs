@@ -17,7 +17,12 @@ namespace SQLBuilder
 		private Stopwatch stopwatch = new();
 		private System.Windows.Forms.Timer? timer;
 
-		public frmMain(bool silent, string? config = null)
+		/// <summary>
+		/// Конструктор класса основной формы приложения
+		/// </summary>
+		/// <param name="silent">Если true, приложение выполняется в тихом режиме без отображения графического интерфейса</param>
+		/// <param name="config">Если не null, приложение запускается с требуемой конфигурацией параметров</param>
+		public frmMain(bool silent = false, string? config = null)
 		{
 			_silent = silent;
 			_config = config;
@@ -30,305 +35,16 @@ namespace SQLBuilder
 			InitializeComponent();
 
 		}
-		private void frmMain_Load(object sender, EventArgs e)
-		{
-			lblVersion.Text = $"Версия: {Application.ProductVersion}";
-			rtbLog.Text = Log.Read();
-			Log.Separate();
-			Log.Write("Запуск приложения");
-
-			// Использовать конфигурационный файл с префиксом, если префикс передан
-			IniFile iniFile;
-			if (!string.IsNullOrEmpty(_config))
-			{
-				iniFile = new($"config_{_config}.ini");
-			}
-			else 
-			{
-				iniFile = new("config.ini");
-			}
-
-			// Секция SCHEDULE
-			// Загружаем из INI-файла начальную дату
-			if (iniFile.KeyExists("SCHEDULE", "Start_data"))
-				dtpStartExecution.Value = Convert.ToDateTime(iniFile.ReadKey("SCHEDULE", "Start_data"));
-			else
-				dtpStartExecution.Value = DateTime.Now;
-			// Загружаем из INI-файла время выполнения
-			if (iniFile.KeyExists("SCHEDULE", "Execution_time"))
-				dtpExecTime.Value = DateTime.Now.Date.Add(Convert.ToDateTime(iniFile.ReadKey("SCHEDULE", "Execution_time")).TimeOfDay);
-			else
-				dtpExecTime.Value = DateTime.Now;
-			// Загружаем из INI-файла период выполнения
-			if (iniFile.KeyExists("SCHEDULE", "Execution_period"))
-				nudExecPeriod.Value = int.Parse(iniFile.ReadKey("SCHEDULE", "Execution_period"));
-			else
-				nudExecPeriod.Value = 1;
-			// Секция INTERVAL
-			// Загружаем из INI-файла начальную дату запроса
-			if (iniFile.KeyExists("INTERVAL", "Start_data"))
-				dtpStartData.Value = Convert.ToDateTime(iniFile.ReadKey("INTERVAL", "Start_data"));
-			else
-				dtpStartData.Value = DateTime.Now;
-			// Загружаем из INI-файла конечную дату запроса
-			if (iniFile.KeyExists("INTERVAL", "Final_data"))
-				dtpFinalData.Value = Convert.ToDateTime(iniFile.ReadKey("INTERVAL", "Final_data"));
-			else
-				dtpFinalData.Value = DateTime.Now;
-			// Секция FILENAME
-			// Загружаем из INI-файла наименование и код конфигурации
-			if (iniFile.KeyExists("FILENAME", "Config_Name"))
-			{
-				txtConfigName.Text = iniFile.ReadKey("FILENAME", "Config_Name");
-			}
-			else
-				txtConfigName.Text = "";
-			if (iniFile.KeyExists("FILENAME", "Config_Name_Id"))
-				txtConfigNameId.Text = iniFile.ReadKey("FILENAME", "Config_Name_Id");
-			else
-				txtConfigNameId.Text = "";
-
-			// Загружаем из INI-файла имя файлы с SQL-запросом
-			if (iniFile.KeyExists("FILENAME", "SQL_File_Name"))
-				txtSQLFileName.Text = iniFile.ReadKey("FILENAME", "SQL_File_Name");
-			else
-				txtSQLFileName.Text = "";
-			// Загружаем из INI-файла путь до папки с результатами
-			if (iniFile.KeyExists("FILENAME", "PathToResultFolder"))
-				txtResultsFileName.Text = iniFile.ReadKey("FILENAME", "PathToResultFolder");
-			else
-				txtResultsFileName.Text = "";
-			// Загружаем из INI-файла Значение добавлять ли к имени файла результата дату
-			if (iniFile.KeyExists("FILENAME", "AddDateToFileResult"))
-				chkResultsFileNameAddDate.Checked = Convert.ToBoolean(iniFile.ReadKey("FILENAME", "AddDateToFileResult"));
-			else
-				chkResultsFileNameAddDate.Checked = false;
-			// Загружаем из INI-файла название базы данных
-			if (iniFile.KeyExists("FILENAME", "SQL_DB_InitialCatalog"))
-				txtInitialCatalog.Text = iniFile.ReadKey("FILENAME", "SQL_DB_InitialCatalog");
-			else
-				txtInitialCatalog.Text = "";
-			// Загружаем из INI-файла пароль пользователя базы данных
-			if (iniFile.KeyExists("FILENAME", "SQL_DB_Pass"))
-				txtSQLDBPass.Text = Crypt.Decrypt(iniFile.ReadKey("FILENAME", "SQL_DB_Pass"), Enumerable.Range(0, 32).Select(x => (byte)x).ToArray());
-			else
-				txtSQLDBPass.Text = "";
-			// Загружаем из INI-файла имя пользователя базы данных
-			if (iniFile.KeyExists("FILENAME", "SQL_DB_UserID"))
-				txtUserID.Text = iniFile.ReadKey("FILENAME", "SQL_DB_UserID");
-			else
-				txtUserID.Text = "";
-			// Загружаем из INI-файла имя или ip-адрес сервера
-			if (iniFile.KeyExists("FILENAME", "SQL_DB_DataSource"))
-				txtDataSource.Text = iniFile.ReadKey("FILENAME", "SQL_DB_DataSource");
-			else
-				txtDataSource.Text = "";
-			// Загружаем из INI-файла тип используемой авторизации
-			if (iniFile.KeyExists("FILENAME", "SQL_DB_IntegratedSecurity"))
-				chkIntegratedSecurity.Checked = Convert.ToBoolean(iniFile.ReadKey("FILENAME", "SQL_DB_IntegratedSecurity"));
-			else
-				chkIntegratedSecurity.Checked = false;
-			IntegratedSecurity();
-			// Загружаем из INI-файла доверие к сертификату сервера
-			if (iniFile.KeyExists("FILENAME", "SQL_DB_TrustServerCertificate"))
-				chkTrustServerCertificate.Checked = Convert.ToBoolean(iniFile.ReadKey("FILENAME", "SQL_DB_TrustServerCertificate"));
-			else
-				chkTrustServerCertificate.Checked = true;
-			// Загружаем из INI-файла формат, в который будет осуществляться экспорт
-			if (iniFile.KeyExists("FILENAME", "Format_Export"))
-			{
-				string formatExportValue = iniFile.ReadKey("FILENAME", "Format_Export");
-				if (int.TryParse(formatExportValue, out int selectedIndex))
-				{
-					cbxFormat.SelectedIndex = selectedIndex;
-				}
-				else
-				{
-					cbxFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию, если парсинг не удался
-				}
-			}
-			else
-			{
-				cbxFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию, если ключ не существует
-			}
-
-			LoadDepartments();
-
-			// Выбираем узел по-умолчанию, если он сохранен в конфигурации
-			string inputText = txtConfigNameId.Text;
-			if (string.IsNullOrWhiteSpace(inputText))
-			{
-				Console.WriteLine("Поле не должно быть пустым.");
-			}
-			else
-			{
-				if (int.TryParse(inputText, out int configNameId))
-				{
-					// Если преобразование прошло успешно, вызываем метод
-					SelectNodeByTag(configNameId);
-				}
-				else
-				{
-					Console.WriteLine("Введите корректное целое число.");
-				}
-			}
-
-			Log.Write("Загрузка параметров из ini-файла завершена");
-			TextBoxRead();
-			if (_silent)
-			{
-				this.Visible = false;
-				this.ShowInTaskbar = false;
-				this.WindowState = FormWindowState.Minimized;
-				cmdExport_Click(sender, e);
-			}
-
-			this.Text = $"{txtConfigName.Text} (Конфигурация: {Program._department})";
-		}
-
-		/// <summary>
-		/// Открыть форму для добавления записи или изменения
-		/// </summary>
-		private void OpenForm(bool insert)
-		{
-			if (treeView.SelectedNode != null)
-			{
-				frmInsertUpdateDeportament form = new(insert, (int)treeView.SelectedNode.Tag);
-				form.ShowDialog();
-			}
-			else
-			{
-				frmInsertUpdateDeportament form = new(insert, 0);
-				form.ShowDialog();
-			}
-			LoadDepartments();
-		}
-
-		/// <summary>
-		/// Открыть форму для добавления записи или изменения сенсоров
-		/// </summary>
-		private void OpenSensorForm(bool insert)
-		{
-			if (treeView.SelectedNode != null)
-			{
-				frmSensor form = new(insert, (int)treeView.SelectedNode.Tag, treeView.SelectedNode.Text, _config);
-				form.ShowDialog();
-			}
-			LoadSensors();
-		}
 
 
 		/// <summary>
-		/// Рекурсивная функция. Обновить дерево отделов
+		/// Сохранение текущих настроек программы в конфигурационный файл
 		/// </summary>
-		private void LoadDepartments()
-		{
-			int id = 0;
-			if (treeView.SelectedNode != null)
-			{
-				id = (int)treeView.SelectedNode.Tag;
-			}
-
-			treeView.Nodes.Clear();
-			TreeViewXmlLoader.LoadTreeViewFromXml(treeView, Program._department);
-
-			SelectNodeByTag(id);
-		}
-
-
-		/// <summary>
-		/// Загрузка сенсоров
-		/// </summary>
-		private void LoadSensors()
-		{
-			if (treeView.SelectedNode != null)
-			{
-				LoadSensorForIdXML(Program._department, (int)treeView.SelectedNode.Tag);
-			}
-		}
-
-		private void LoadSensorForIdXML(string xmlFilePath, int nodeId)
-		{
-
-			if (File.Exists(xmlFilePath))
-			{
-				XmlDocument doc = new();
-				doc.Load(xmlFilePath); // Путь к вашему XML файлу
-				listView.Items.Clear();
-
-				XmlNode? node = doc.SelectSingleNode($"//Node[@Id='{nodeId}']");
-				if (node != null)
-				{
-					foreach (XmlNode sensorNode in node.SelectNodes("Sensor"))
-					{
-						var param = new ListViewItem(new[] { sensorNode.Attributes["Id"].Value,
-															 sensorNode.Attributes["Name"].Value,
-															 sensorNode.Attributes["Type"].Value,
-															 sensorNode.Attributes["Description"].Value })
-						{
-							Tag = nodeId
-						};
-						listView.Items.Add(param);
-					}
-				}
-			}
-		}
-
-		// Рекурсивный метод для поиска
-		private void SelectNodeByTag(int id)
-		{
-			foreach (TreeNode node in treeView.Nodes)
-			{
-				int idn = (int)node.Tag;
-				if (idn == id)
-				{
-					treeView.SelectedNode = node;
-					break;
-				}
-				// Если узел имеет дочерние узлы, продолжайте поиск рекурсивно
-				SelectNodeByTagRecursive(node, id);
-			}
-		}
-
-		// Рекурсивный метод для поиска в дочерних узлах
-		private void SelectNodeByTagRecursive(TreeNode parentNode, int id)
-		{
-			foreach (TreeNode childNode in parentNode.Nodes)
-			{
-				int idn = (int)childNode.Tag;
-				if (idn == id)
-				{
-					treeView.SelectedNode = childNode;
-					break;
-				}
-				SelectNodeByTagRecursive(childNode, id);
-			}
-		}
-
-		private void cmdClose_Click(object sender, EventArgs e)
-		{
-			Log.Write("Завершение работы приложения");
-			Log.Separate();
-			Application.Exit();
-		}
-
-		private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
-		{
-			SaveIni();
-		}
-
-		private void SaveIni()
+		private void SaveIniFile()
 		{
 			// Использовать конфигурационный файл с префиксом, если префикс передан
-			IniFile iniFile;
-			if (!string.IsNullOrEmpty(_config))
-			{
-				iniFile = new($"config_{_config}.ini");
-			}
-			else
-			{
-				iniFile = new("config.ini");
-			}
+			IniFile iniFile = new(string.IsNullOrEmpty(_config) ? "config.ini" : $"config_{_config}.ini");
+
 			// Секция SCHEDULE
 			iniFile.WriteKey("SCHEDULE", "Start_data", dtpStartExecution.Value.Date.ToLongDateString());
 			iniFile.WriteKey("SCHEDULE", "Execution_time", dtpExecTime.Value.ToShortTimeString());
@@ -354,6 +70,576 @@ namespace SQLBuilder
 			Log.Write("Запись параметров в ini-файл завершена");
 		}
 
+		/// <summary>
+		/// Читает параметры из ini-файла и заполняет значениями элементы формы
+		/// </summary>
+		private void ReadIniFile()
+		{
+			// Использовать конфигурационный файл с префиксом, если префикс передан
+			IniFile iniFile = new(string.IsNullOrEmpty(_config) ? "config.ini" : $"config_{_config}.ini");
+
+			// Секция SCHEDULE
+			// Загружаем из INI-файла начальную дату
+			try
+			{
+				if (iniFile.KeyExists("SCHEDULE", "Start_data"))
+				{
+					string startData = iniFile.ReadKey("SCHEDULE", "Start_data");
+					// Проверяем, является ли строка корректной датой
+					if (DateTime.TryParse(startData, out DateTime parsedDate))
+					{
+						dtpStartExecution.Value = parsedDate;
+					}
+					else
+					{
+						// Если строка не является корректной датой, устанавливаем текущее время
+						dtpStartExecution.Value = DateTime.Now;
+					}
+				}
+				else
+				{
+					dtpStartExecution.Value = DateTime.Now;
+				}
+			}
+			catch (Exception ex)
+			{
+				// Обработка исключений, например, логирование ошибки
+				Console.WriteLine($"Ошибка: {ex.Message}");
+				Log.Write($"Ошибка: {ex.Message}");
+				dtpStartExecution.Value = DateTime.Now; // Устанавливаем текущее время в случае ошибки
+			}
+			try
+			{
+				// Проверяем, существует ли ключ "Execution_time" в секции "SCHEDULE"
+				if (iniFile.KeyExists("SCHEDULE", "Execution_time"))
+				{
+					string executionTimeString = iniFile.ReadKey("SCHEDULE", "Execution_time");
+
+					// Проверяем, является ли строка корректной датой/временем
+					if (DateTime.TryParse(executionTimeString, out DateTime executionTime))
+					{
+						// Устанавливаем время выполнения, добавляя время к текущей дате
+						dtpExecTime.Value = DateTime.Now.Date.Add(executionTime.TimeOfDay);
+					}
+					else
+					{
+						// Если строка не является корректной датой/временем, устанавливаем текущее время
+						Console.WriteLine($"Ошибка: '{executionTimeString}' не является корректным временем. Устанавливаем текущее время.");
+						dtpExecTime.Value = DateTime.Now;
+					}
+				}
+				else
+				{
+					// Если ключ не существует, устанавливаем текущее время
+					dtpExecTime.Value = DateTime.Now;
+				}
+			}
+			catch (Exception ex)
+			{
+				// Обработка исключений, например, логирование ошибки
+				Console.WriteLine($"Ошибка: {ex.Message}");
+				Log.Write($"Ошибка: {ex.Message}");
+				dtpExecTime.Value = DateTime.Now; // Устанавливаем текущее время в случае ошибки
+			}
+			try
+			{
+				// Проверяем, существует ли ключ "Execution_period" в секции "SCHEDULE"
+				if (iniFile.KeyExists("SCHEDULE", "Execution_period"))
+				{
+					string executionPeriodString = iniFile.ReadKey("SCHEDULE", "Execution_period");
+
+					// Проверяем, является ли строка корректным целым числом
+					if (int.TryParse(executionPeriodString, out int executionPeriod))
+					{
+						// Устанавливаем период выполнения
+						nudExecPeriod.Value = executionPeriod;
+					}
+					else
+					{
+						// Если строка не является корректным целым числом, устанавливаем значение по умолчанию
+						Console.WriteLine($"Ошибка: '{executionPeriodString}' не является корректным целым числом. Устанавливаем значение по умолчанию 1.");
+						Log.Write($"Ошибка: '{executionPeriodString}' не является корректным целым числом. Устанавливаем значение по умолчанию 1.");
+						nudExecPeriod.Value = 1;
+					}
+				}
+				else
+				{
+					// Если ключ не существует, устанавливаем значение по умолчанию
+					nudExecPeriod.Value = 1;
+				}
+			}
+			catch (Exception ex)
+			{
+				// Обработка исключений, например, логирование ошибки
+				Console.WriteLine($"Ошибка при загрузке периода выполнения: {ex.Message}");
+				Log.Write($"Ошибка при загрузке периода выполнения: {ex.Message}");
+				nudExecPeriod.Value = 1; // Устанавливаем значение по умолчанию в случае ошибки
+			}
+
+			// Секция INTERVAL
+			try
+			{
+				// Проверяем, существует ли ключ "Start_data" в секции "INTERVAL"
+				if (iniFile.KeyExists("INTERVAL", "Start_data"))
+				{
+					string startDataString = iniFile.ReadKey("INTERVAL", "Start_data");
+
+					// Проверяем, является ли строка корректной датой
+					if (DateTime.TryParse(startDataString, out DateTime startData))
+					{
+						// Устанавливаем начальную дату запроса
+						dtpStartData.Value = startData;
+					}
+					else
+					{
+						// Если строка не является корректной датой, устанавливаем текущее время
+						Console.WriteLine($"Ошибка: '{startDataString}' не является корректной датой. Устанавливаем текущее время.");
+						Log.Write($"Ошибка: '{startDataString}' не является корректной датой. Устанавливаем текущее время.");
+						dtpStartData.Value = DateTime.Now;
+					}
+				}
+				else
+				{
+					// Если ключ не существует, устанавливаем текущее время
+					dtpStartData.Value = DateTime.Now;
+				}
+			}
+			catch (Exception ex)
+			{
+				// Обработка исключений, например, логирование ошибки
+				Console.WriteLine($"Ошибка при загрузке начальной даты запроса: {ex.Message}");
+				Log.Write($"Ошибка при загрузке начальной даты запроса: {ex.Message}");
+				dtpStartData.Value = DateTime.Now; // Устанавливаем текущее время в случае ошибки
+			}
+
+			try
+			{
+				// Проверяем, существует ли ключ "Final_data" в секции "INTERVAL"
+				if (iniFile.KeyExists("INTERVAL", "Final_data"))
+				{
+					string finalDataString = iniFile.ReadKey("INTERVAL", "Final_data");
+
+					// Проверяем, является ли строка корректной датой
+					if (DateTime.TryParse(finalDataString, out DateTime finalData))
+					{
+						// Устанавливаем конечную дату запроса
+						dtpFinalData.Value = finalData;
+					}
+					else
+					{
+						// Если строка не является корректной датой, устанавливаем текущее время
+						Console.WriteLine($"Ошибка: '{finalDataString}' не является корректной датой. Устанавливаем текущее время.");
+						Log.Write($"Ошибка: '{finalDataString}' не является корректной датой. Устанавливаем текущее время.");
+						dtpFinalData.Value = DateTime.Now;
+					}
+				}
+				else
+				{
+					// Если ключ не существует, устанавливаем текущее время
+					dtpFinalData.Value = DateTime.Now;
+				}
+			}
+			catch (Exception ex)
+			{
+				// Обработка исключений, например, логирование ошибки
+				Console.WriteLine($"Ошибка при загрузке конечной даты запроса: {ex.Message}");
+				Log.Write($"Ошибка при загрузке конечной даты запроса: {ex.Message}");
+				dtpFinalData.Value = DateTime.Now; // Устанавливаем текущее время в случае ошибки
+			}
+
+			// Секция FILENAME
+			// Загружаем из INI-файла наименование и код конфигурации
+			if (iniFile.KeyExists("FILENAME", "Config_Name"))
+			{
+				txtConfigName.Text = iniFile.ReadKey("FILENAME", "Config_Name");
+			}
+			else
+				txtConfigName.Text = "";
+
+			if (iniFile.KeyExists("FILENAME", "Config_Name_Id"))
+				txtConfigNameId.Text = iniFile.ReadKey("FILENAME", "Config_Name_Id");
+			else
+				txtConfigNameId.Text = "";
+
+			// Загружаем из INI-файла имя файлы с SQL-запросом
+			if (iniFile.KeyExists("FILENAME", "SQL_File_Name"))
+				txtSQLFileName.Text = iniFile.ReadKey("FILENAME", "SQL_File_Name");
+			else
+				txtSQLFileName.Text = "";
+
+			// Загружаем из INI-файла путь до папки с результатами
+			if (iniFile.KeyExists("FILENAME", "PathToResultFolder"))
+				txtResultsFileName.Text = iniFile.ReadKey("FILENAME", "PathToResultFolder");
+			else
+				txtResultsFileName.Text = "";
+
+			try
+			{
+				// Проверяем, существует ли ключ "AddDateToFileResult" в секции "FILENAME"
+				if (iniFile.KeyExists("FILENAME", "AddDateToFileResult"))
+				{
+					string addDateToFileResultString = iniFile.ReadKey("FILENAME", "AddDateToFileResult");
+
+					// Проверяем, является ли строка корректным булевым значением
+					if (bool.TryParse(addDateToFileResultString, out bool addDateToFileResult))
+					{
+						// Устанавливаем значение чекбокса
+						chkResultsFileNameAddDate.Checked = addDateToFileResult;
+					}
+					else
+					{
+						// Если строка не является корректным булевым значением, устанавливаем значение по умолчанию
+						Console.WriteLine($"Ошибка: '{addDateToFileResultString}' не является корректным булевым значением. Устанавливаем значение по умолчанию (false).");
+						Log.Write($"Ошибка: '{addDateToFileResultString}' не является корректным булевым значением. Устанавливаем значение по умолчанию (false).");
+						chkResultsFileNameAddDate.Checked = false;
+					}
+				}
+				else
+				{
+					// Если ключ не существует, устанавливаем значение по умолчанию
+					chkResultsFileNameAddDate.Checked = false;
+				}
+			}
+			catch (Exception ex)
+			{
+				// Обработка исключений, например, логирование ошибки
+				Console.WriteLine($"Ошибка при загрузке значения добавления даты к имени файла результата: {ex.Message}");
+				Log.Write($"Ошибка при загрузке значения добавления даты к имени файла результата: {ex.Message}");
+				chkResultsFileNameAddDate.Checked = false; // Устанавливаем значение по умолчанию в случае ошибки
+			}
+
+			// Загружаем из INI-файла название базы данных
+			if (iniFile.KeyExists("FILENAME", "SQL_DB_InitialCatalog"))
+				txtInitialCatalog.Text = iniFile.ReadKey("FILENAME", "SQL_DB_InitialCatalog");
+			else
+				txtInitialCatalog.Text = "";
+
+			// Загружаем из INI-файла пароль пользователя базы данных
+			if (iniFile.KeyExists("FILENAME", "SQL_DB_Pass"))
+				txtSQLDBPass.Text = Crypt.Decrypt(iniFile.ReadKey("FILENAME", "SQL_DB_Pass"), Enumerable.Range(0, 32).Select(x => (byte)x).ToArray());
+			else
+				txtSQLDBPass.Text = "";
+
+			// Загружаем из INI-файла имя пользователя базы данных
+			if (iniFile.KeyExists("FILENAME", "SQL_DB_UserID"))
+				txtUserID.Text = iniFile.ReadKey("FILENAME", "SQL_DB_UserID");
+			else
+				txtUserID.Text = "";
+
+			// Загружаем из INI-файла имя или ip-адрес сервера
+			if (iniFile.KeyExists("FILENAME", "SQL_DB_DataSource"))
+				txtDataSource.Text = iniFile.ReadKey("FILENAME", "SQL_DB_DataSource");
+			else
+				txtDataSource.Text = "";
+
+			// Загружаем из INI-файла тип используемой авторизации
+			try
+			{
+				// Проверяем, существует ли ключ "SQL_DB_IntegratedSecurity" в секции "FILENAME"
+				if (iniFile.KeyExists("FILENAME", "SQL_DB_IntegratedSecurity"))
+				{
+					string integratedSecurityString = iniFile.ReadKey("FILENAME", "SQL_DB_IntegratedSecurity");
+
+					// Проверяем, является ли строка корректным булевым значением
+					if (bool.TryParse(integratedSecurityString, out bool integratedSecurity))
+					{
+						// Устанавливаем значение чекбокса
+						chkIntegratedSecurity.Checked = integratedSecurity;
+					}
+					else
+					{
+						// Если строка не является корректным булевым значением, устанавливаем значение по умолчанию
+						Console.WriteLine($"Ошибка: '{integratedSecurityString}' не является корректным булевым значением. Устанавливаем значение по умолчанию (false).");
+						Log.Write($"Ошибка: '{integratedSecurityString}' не является корректным булевым значением. Устанавливаем значение по умолчанию (false).");
+						chkIntegratedSecurity.Checked = false;
+					}
+				}
+				else
+				{
+					// Если ключ не существует, устанавливаем значение по умолчанию
+					chkIntegratedSecurity.Checked = false;
+				}
+			}
+			catch (Exception ex)
+			{
+				// Обработка исключений, например, логирование ошибки
+				Console.WriteLine($"Ошибка при загрузке типа используемой авторизации: {ex.Message}");
+				Log.Write($"Ошибка при загрузке типа используемой авторизации: {ex.Message}");
+				chkIntegratedSecurity.Checked = false; // Устанавливаем значение по умолчанию в случае ошибки
+				
+			}
+			IntegratedSecurity();
+
+			// Загружаем из INI-файла доверие к сертификату сервера
+			try
+			{
+				// Проверяем, существует ли ключ "SQL_DB_TrustServerCertificate" в секции "FILENAME"
+				if (iniFile.KeyExists("FILENAME", "SQL_DB_TrustServerCertificate"))
+				{
+					string trustServerCertificateString = iniFile.ReadKey("FILENAME", "SQL_DB_TrustServerCertificate");
+
+					// Проверяем, является ли строка корректным булевым значением
+					if (bool.TryParse(trustServerCertificateString, out bool trustServerCertificate))
+					{
+						// Устанавливаем значение чекбокса
+						chkTrustServerCertificate.Checked = trustServerCertificate;
+					}
+					else
+					{
+						// Если строка не является корректным булевым значением, устанавливаем значение по умолчанию
+						Console.WriteLine($"Ошибка: '{trustServerCertificateString}' не является корректным булевым значением. Устанавливаем значение по умолчанию (true).");
+						Log.Write($"Ошибка: '{trustServerCertificateString}' не является корректным булевым значением. Устанавливаем значение по умолчанию (true).");
+						chkTrustServerCertificate.Checked = true;
+					}
+				}
+				else
+				{
+					// Если ключ не существует, устанавливаем значение по умолчанию
+					chkTrustServerCertificate.Checked = true;
+				}
+			}
+			catch (Exception ex)
+			{
+				// Обработка исключений, например, логирование ошибки
+				Console.WriteLine($"Ошибка при загрузке доверия к сертификату сервера: {ex.Message}");
+				Log.Write($"Ошибка при загрузке доверия к сертификату сервера: {ex.Message}");
+				chkTrustServerCertificate.Checked = true; // Устанавливаем значение по умолчанию в случае ошибки
+			}
+
+			// Загружаем из INI-файла формат, в который будет осуществляться экспорт
+			if (iniFile.KeyExists("FILENAME", "Format_Export"))
+			{
+				string formatExportValue = iniFile.ReadKey("FILENAME", "Format_Export");
+				if (int.TryParse(formatExportValue, out int selectedIndex))
+				{
+					cbxFormat.SelectedIndex = selectedIndex;
+				}
+				else
+				{
+					cbxFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию, если парсинг не удался
+				}
+			}
+			else
+			{
+				cbxFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию, если ключ не существует
+			}
+			Log.Write("Загрузка параметров из ini-файла завершена");
+		}
+
+
+		/// <summary>
+		/// Обработка события загрузки формы в память
+		/// </summary>
+		private void frmMain_Load(object sender, EventArgs e)
+		{
+			rtbLog.Text = Log.Read();
+			Log.Separate();
+			Log.Write("Запуск приложения");
+
+			ReadIniFile();
+			LoadDepartments();
+
+			// Выбираем узел по-умолчанию, если он сохранен в конфигурации
+			string inputText = txtConfigNameId.Text;
+			if (string.IsNullOrWhiteSpace(inputText))
+			{
+				Console.WriteLine("Поле не должно быть пустым.");
+			}
+			else
+			{
+				if (int.TryParse(inputText, out int configNameId))
+				{
+					// Если преобразование прошло успешно, вызываем метод
+					SelectNodeByTag(configNameId);
+				}
+				else
+				{
+					Console.WriteLine("Введите корректное целое число.");
+				}
+			}
+
+			// Выполняем экспорт в тихом режиме
+			if (_silent)
+			{
+				this.Visible = false;
+				this.ShowInTaskbar = false;
+				this.WindowState = FormWindowState.Minimized;
+				cmdExport_Click(sender, e);
+			}
+			else {
+				// Если форма будет отображена, меняем заголовок и читаем лог в специальное поле
+				this.Text = $"{txtConfigName.Text} (Конфигурация: {Program._department})";
+				lblVersion.Text = $"Версия: {Application.ProductVersion}";
+				TextBoxRead();
+			}
+
+		}
+
+		/// <summary>
+		/// Открыть форму для добавления элемента дерева или его изменения
+		/// </summary>
+		/// <param name="insert">Если true, форма открывается в режиме добавления элемента, иначе в режиме редактирования</param>
+		private void OpenForm(bool insert)
+		{
+			if (treeView.SelectedNode != null)
+			{
+				frmInsertUpdateDeportament form = new(insert, (int)treeView.SelectedNode.Tag);
+				form.ShowDialog();
+			}
+			else
+			{
+				frmInsertUpdateDeportament form = new(insert, 0);
+				form.ShowDialog();
+			}
+			LoadDepartments();
+		}
+
+		/// <summary>
+		/// Открыть форму для добавления записи о сенсорах или их изменении
+		/// </summary>
+		/// <param name="insert">Если true, форма открывается в режиме добавления элемента, иначе в режиме редактирования</param>
+		private void OpenSensorForm(bool insert)
+		{
+			if (treeView.SelectedNode != null)
+			{
+				frmSensor form = new(insert, (int)treeView.SelectedNode.Tag, treeView.SelectedNode.Text, _config);
+				form.ShowDialog();
+			}
+			LoadSensors();
+		}
+
+
+		/// <summary>
+		/// Обновить дерево подразделений
+		/// </summary>
+		private void LoadDepartments()
+		{
+			int id = 0;
+			if (treeView.SelectedNode != null)
+			{
+				id = (int)treeView.SelectedNode.Tag;
+			}
+
+			treeView.Nodes.Clear();
+			TreeViewXmlLoader.LoadTreeViewFromXml(treeView, Program._department);
+			SelectNodeByTag(id);
+		}
+
+		/// <summary>
+		/// Функция обертка для загрузки сенсоров. Проверяет наличие выделенного элемента дерева
+		/// </summary>
+		private void LoadSensors()
+		{
+			if (treeView.SelectedNode != null)
+			{
+				LoadSensorForIdXML(Program._department, (int)treeView.SelectedNode.Tag);
+			}
+		}
+
+		/// <summary>
+		/// Функция обертка для загрузки сенсоров. Проверяет наличие выделенного элемента дерева
+		/// </summary>
+		/// <param name="xmlFilePath">Ссылка на конфигурационный файл XML</param>
+		/// <param name="nodeId">Идентификатор подразделения</param>
+		private void LoadSensorForIdXML(string xmlFilePath, int nodeId)
+		{
+
+			if (File.Exists(xmlFilePath))
+			{
+				XmlDocument doc = new();
+				doc.Load(xmlFilePath); // Путь к вашему XML файлу
+				listView.Items.Clear();
+
+				XmlNode? node = doc.SelectSingleNode($"//Node[@Id='{nodeId}']");
+				if (node != null)
+				{
+					XmlNodeList? sensorNodes = node.SelectNodes("Sensor");
+					if (sensorNodes != null)
+					{
+						foreach (XmlNode sensorNode in sensorNodes)
+						{
+							var param = new ListViewItem(new[]
+							{
+								sensorNode.Attributes["Id"]?.Value ?? string.Empty,
+								sensorNode.Attributes["Name"]?.Value ?? string.Empty,
+								sensorNode.Attributes["Type"]?.Value ?? string.Empty,
+								sensorNode.Attributes["Description"]?.Value ?? string.Empty
+							})
+							{
+								Tag = nodeId
+							};
+							listView.Items.Add(param);
+						}
+					}
+					else
+					{
+						// Обработка случая, когда узлы не найдены (если необходимо)
+						Console.WriteLine("Нет узлов Sensor для обработки.");
+						Log.Write("Нет узлов Sensor для обработки.");
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Поиск элемента дерева по идентификатору
+		/// </summary>
+		/// <param name="id">Код идентификатора</param>
+		private void SelectNodeByTag(int id)
+		{
+			foreach (TreeNode node in treeView.Nodes)
+			{
+				int idn = (int)node.Tag;
+				if (idn == id)
+				{
+					treeView.SelectedNode = node;
+					break;
+				}
+				// Если узел имеет дочерние узлы, продолжайте поиск рекурсивно
+				SelectNodeByTagRecursive(node, id);
+			}
+		}
+
+		/// <summary>
+		/// Рекурсивный метод для поиска в дочерних узлах
+		/// </summary>
+		/// <param name="parentNode">Ссылка на родителя в элементах дерева</param>
+		/// <param name="id">Код идентификатора</param>
+		private void SelectNodeByTagRecursive(TreeNode parentNode, int id)
+		{
+			foreach (TreeNode childNode in parentNode.Nodes)
+			{
+				int idn = (int)childNode.Tag;
+				if (idn == id)
+				{
+					treeView.SelectedNode = childNode;
+					break;
+				}
+				SelectNodeByTagRecursive(childNode, id);
+			}
+		}
+
+		/// <summary>
+		/// Обработка события нажатия на кнопку "Закрыть"
+		/// </summary>
+		private void cmdClose_Click(object sender, EventArgs e)
+		{
+			Log.Write("Завершение работы приложения");
+			Log.Separate();
+			Application.Exit();
+		}
+
+		/// <summary>
+		/// Обработка события закрытия формы
+		/// </summary>
+		private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
+		{
+			SaveIniFile();
+		}
+
+		/// <summary>
+		/// Обработка события нажатия на кнопку "cmdSQLFileName"
+		/// </summary>
 		private void cmdSQLFileName_Click(object sender, EventArgs e)
 		{
 			ofdSQLFileName.Title = "Пожалуйста выберите файл с запросом SQL";
@@ -367,20 +653,38 @@ namespace SQLBuilder
 			txtSQLFileName.Text = ofdSQLFileName.FileName;
 		}
 
-		private void cmdExport_Click(object sender, EventArgs e)
+		/// <summary>
+		/// Обработка события нажатия на кнопку "cmdExport"
+		/// </summary>
+		private async void cmdExport_Click(object sender, EventArgs e)
 		{
-			if (cbxFormat.SelectedIndex == 0)
+			try
 			{
-				Log.Write("Выгружаем в файл формата Microsoft Excel");
-				ExportToExcelAsync();
+				if (cbxFormat.SelectedIndex == 0)
+				{
+					Log.Write("Выгружаем в файл формата Microsoft Excel");
+					//TODO: Работает неоптимизированная функция. Нужно адаптировать
+					await ExportToExcelAsync1();
+				}
+				else
+				{
+					//TODO: Работает неоптимизированная функция. Нужно адаптировать
+					Log.Write("Выгружаем в файл формата CSV");
+					await ExportToCSVAsync1();
+				}
 			}
-			else
+			catch (Exception ex)
 			{
-				Log.Write("Выгружаем в файл формата CSV");
-				ExportToCSVAsync();
+				Log.Write($"Ошибка при экспорте: {ex.Message}");
+				// Дополнительная обработка ошибок, если необходимо
 			}
 		}
 
+		/// <summary>
+		/// Записывает данные из DataTable в CSV-файл.
+		/// </summary>
+		/// <param name="dataTable">Ссылка на набор данных.</param>
+		/// <param name="filePath">Путь до файла с разделителями.</param>
 		public static void WriteDataTableToCsv(DataTable dataTable, string filePath)
 		{
 			try
@@ -414,14 +718,331 @@ namespace SQLBuilder
 				}
 
 				Console.WriteLine($"Данные успешно записаны в файл: {filePath}");
+				Log.Write($"Данные успешно записаны в файл: {filePath}");
 			}
 			catch (Exception ex)
 			{
 				Console.WriteLine($"Произошла ошибка при записи в CSV: {ex.Message}");
+				Log.Write($"Произошла ошибка при записи в CSV: {ex.Message}");
 			}
 		}
 
+		/// <summary>
+		/// Асинхронная функция для экспорта данных в CSV-файл.
+		/// </summary>
 		private async Task ExportToCSVAsync()
+		{
+			try
+			{
+				string strSQL = await ReadSqlFromFileAsync(txtSQLFileName.Text);
+				await ExportDataAsync(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL, cbxFormat.SelectedIndex);
+				rtbLog.Text = Log.Read();
+			}
+			catch (FileNotFoundException fnfEx)
+			{
+				MessageBox.Show("Файл не найден: " + fnfEx.Message);
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show("Произошла ошибка: " + ex.Message);
+			}
+		}
+
+		/// <summary>
+		/// Асинхронная функция для экспорта данных в Excel-файл.
+		/// </summary>
+		private async Task ExportToExcelAsync()
+		{
+			try
+			{
+				string strSQL = await ReadSqlFromFileAsync(txtSQLFileName.Text);
+				await ExportDataAsync(txtDataSource.Text, txtUserID.Text, txtSQLDBPass.Text, txtInitialCatalog.Text, chkIntegratedSecurity.Checked, chkTrustServerCertificate.Checked, strSQL, cbxFormat.SelectedIndex);
+				rtbLog.Text = Log.Read();
+			}
+			catch (FileNotFoundException fnfEx)
+			{
+				MessageBox.Show("Файл не найден: " + fnfEx.Message);
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show("Произошла ошибка: " + ex.Message);
+			}
+		}
+
+		/// <summary>
+		/// Читает SQL-запрос из указанного файла.
+		/// </summary>
+		/// <param name="filePath">Путь к файлу, содержащему SQL-запрос.</param>
+		/// <returns>Строка, содержащая SQL-запрос.</returns>
+		private async Task<string> ReadSqlFromFileAsync(string filePath)
+		{
+			using StreamReader reader = new(filePath);
+			return await reader.ReadToEndAsync();
+		}
+
+		/// <summary>
+		/// Выполняет экспорт данных из базы данных в указанный формат (CSV или Excel).
+		/// </summary>
+		/// <param name="sDataSource">Источник данных для подключения к базе данных.</param>
+		/// <param name="sUserID">Имя пользователя для подключения к базе данных.</param>
+		/// <param name="sPassword">Пароль для подключения к базе данных.</param>
+		/// <param name="sInitialCatalog">Имя базы данных.</param>
+		/// <param name="bIntegratedSecurity">Флаг, указывающий, использовать ли интегрированную безопасность.</param>
+		/// <param name="bTrustServerCertificate">Флаг, указывающий, доверять ли сертификату сервера.</param>
+		/// <param name="strSQL">SQL-запрос для выполнения.</param>
+		/// <param name="exportType">Тип экспорта (CSV или Excel).</param>
+		/// <returns>Задача, представляющая асинхронную операцию.</returns>
+		private async Task ExportDataAsync(string sDataSource, string sUserID, string sPassword, string sInitialCatalog, bool bIntegratedSecurity, bool bTrustServerCertificate, string strSQL, int exportType)
+		{
+			cmdExport.Enabled = false;
+
+			SqlConnectionStringBuilder builder = new()
+			{
+				DataSource = sDataSource,
+				UserID = sUserID,
+				Password = sPassword,
+				InitialCatalog = sInitialCatalog,
+				IntegratedSecurity = bIntegratedSecurity,
+				TrustServerCertificate = bTrustServerCertificate
+			};
+
+			LogConnectionDetails(sDataSource, sUserID, sInitialCatalog, strSQL);
+
+			using SqlConnection connection = new(builder.ConnectionString);
+			try
+			{
+				await connection.OpenAsync();
+				string selectedIds = ReadSensorIds();
+				DataTable dataTable = await ExecuteSqlQueryAsync(connection, strSQL, selectedIds, dtpStartData.Value.Date, dtpFinalData.Value.Date);
+
+				if (exportType == 1)
+				{
+					string filePath = GenerateFilePath("output", ".csv");
+					WriteDataTableToCsv(dataTable, filePath);
+				}
+				else if (exportType == 0)
+				{
+					string filePath = GenerateFilePath("output", ".xlsx");
+					await WriteDataTableToExcelAsync(dataTable, filePath);
+				}
+
+				Log.Write("Выгрузка успешно завершена.");
+				if (!_silent)
+				{
+					MessageBox.Show("Выгрузка успешно завершена");
+				}
+			}
+			catch (SqlException e)
+			{
+				Log.Write($"Возникла ошибка во время выполнения sql-запроса: {e}");
+				MessageBox.Show(e.ToString());
+			}
+			finally
+			{
+				cmdExport.Enabled = true;
+			}
+		}
+
+		/// <summary>
+		/// Логирует детали подключения к базе данных.
+		/// </summary>
+		/// <param name="sDataSource">Источник данных для подключения к базе данных.</param>
+		/// <param name="sUserID">Имя пользователя для подключения к базе данных.</param>
+		/// <param name="sInitialCatalog">Имя базы данных.</param>
+		/// <param name="strSQL">SQL-запрос для выполнения.</param>
+		private void LogConnectionDetails(string sDataSource, string sUserID, string sInitialCatalog, string strSQL)
+		{
+			Log.Write($"Источник данных (DataSource): {sDataSource}");
+			Log.Write($"Имя пользователя (UserID): {sUserID}");
+			Log.Write($"Пароль (Password): *********");
+			Log.Write($"База данных (InitialCatalog): {sInitialCatalog}");
+			Log.Write($"SQL-запрос к базе данных: {strSQL}");
+		}
+
+		/// <summary>
+		/// Читает идентификаторы сенсоров из XML-файла.
+		/// </summary>
+		/// <returns>Строка, содержащая идентификаторы сенсоров, разделенные запятыми.</returns>
+		private static string ReadSensorIds()
+		{
+			string xmlFilePath = Program._department;
+			XmlDocument xmlDoc = new();
+			xmlDoc.Load(xmlFilePath);
+			XmlNodeList? sensorNodes = xmlDoc.SelectNodes("//Sensor");
+
+			// Проверка на null и возврат пустой строки, если нет сенсоров
+			if (sensorNodes == null || sensorNodes.Count == 0)
+			{
+				return string.Empty; // Или можно выбросить исключение, если это критично
+			}
+
+			return string.Join(",", sensorNodes.Cast<XmlNode>().Select(node => node.Attributes["Id"].Value));
+		}
+
+		/// <summary>
+		/// Выполняет SQL-запрос и возвращает результаты в виде DataTable.
+		/// </summary>
+		/// <param name="connection">Соединение с базой данных.</param>
+		/// <param name="strSQL">SQL-запрос для выполнения.</param>
+		/// <param name="selectedIds">Идентификаторы сенсоров для фильтрации данных.</param>
+		/// <param name="startDate">Дата начала для фильтрации данных.</param>
+		/// <param name="endDate">Дата окончания для фильтрации данных.</param>
+		/// <returns>DataTable, содержащий результаты выполнения SQL-запроса.</returns>
+		private async Task<DataTable> ExecuteSqlQueryAsync(SqlConnection connection, string strSQL, string selectedIds, DateTime startDate, DateTime endDate)
+		{
+			DataTable dataTable = new();
+			using SqlCommand command = new(strSQL, connection)
+			{
+				CommandTimeout = Int32.MaxValue // Установите значение в секундах
+			};
+
+			command.Parameters.AddWithValue("@selected_ids", selectedIds);
+			command.Parameters.AddWithValue("@start_date", startDate);
+			command.Parameters.AddWithValue("@end_date", endDate);
+
+			using SqlDataAdapter adapter = new(command);
+			await Task.Run(() => adapter.Fill(dataTable));
+			return dataTable;
+		}
+
+		/// <summary>
+		/// Генерирует путь к файлу для экспорта данных.
+		/// </summary>
+		/// <param name="fileNameWithoutExtension">Имя файла без расширения.</param>
+		/// <param name="fileExtension">Расширение файла.</param>
+		/// <returns>Строка, представляющая полный путь к файлу.</returns>
+		private string GenerateFilePath(string fileNameWithoutExtension, string fileExtension)
+		{
+			IniFile iniFile = new(string.IsNullOrEmpty(_config) ? "config.ini" : $"config_{_config}.ini");
+			string filePath = iniFile.ReadKey("FILENAME", "PathToResultFolder");
+			string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
+
+			if (chkResultsFileNameAddDate.Checked)
+			{
+				return $"{filePath}\\{fileNameWithoutExtension}_{currentDateTime}{fileExtension}";
+			}
+			else
+			{
+				return $"{filePath}\\{fileNameWithoutExtension}{fileExtension}";
+			}
+		}
+
+		/// <summary>
+		/// Записывает данные из DataTable в Excel-файл.
+		/// </summary>
+		/// <param name="dataTable">Ссылка на набор данных.</param>
+		/// <param name="filePath">Путь до Excel-файла.</param>
+		/// <returns>Задача, представляющая асинхронную операцию.</returns>
+		private async Task WriteDataTableToExcelAsync(DataTable dataTable, string filePath)
+		{
+			ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+			using ExcelPackage excelPackage = new();
+			ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add("Sheet1");
+			worksheet.Cells["A1"].LoadFromDataTable(dataTable, true);
+			worksheet.Column(1).Style.Numberformat.Format = "dd.mm.yyyy HH:mm";
+			worksheet.Row(1).Height = 75;
+			worksheet.Row(1).Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+			worksheet.Row(1).Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+			worksheet.Row(1).Style.WrapText = true;
+
+			// Установка ширины всех колонок
+			for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+			{
+				worksheet.Column(col).Width = 11; // Установить ширину колонки на 11
+			}
+			worksheet.Column(1).Width = 20;
+			worksheet.Cells["A1"].Value = "Время";
+			worksheet.Cells["B1"].Value = "день";
+			worksheet.Cells["C1"].Value = "месяц";
+			worksheet.Cells["D1"].Value = "год";
+			worksheet.Cells["E1"].Value = "час";
+			worksheet.Cells["F1"].Value = "мин";
+
+			// Сохранение Excel файла
+			FileInfo excelFile = new(filePath);
+			await excelPackage.SaveAsAsync(excelFile);
+
+			worksheet.InsertRow(2, 1); // Вставляем одну пустую строку после первой строки
+			worksheet.InsertRow(3, 1); // Вставляем одну пустую строку после второй строки
+
+			// Чтение XML файла для получения кодов sensor и их названий
+
+			string xmlFilePath = Program._department;
+			XmlDocument xmlDoc = new();
+			xmlDoc.Load(xmlFilePath);
+			XmlNodeList? sensorNodes = xmlDoc.SelectNodes("//Sensor");
+
+			// Проверка на null и возврат пустой строки, если нет сенсоров
+			if (sensorNodes == null || sensorNodes.Count == 0)
+			{
+				Dictionary<string, string> sensorNames = [];
+				foreach (XmlNode sensorNode in sensorNodes)
+				{
+					string id = sensorNode.Attributes["Id"].Value;
+					string name = sensorNode.Attributes["UserDescription"].Value;
+					sensorNames[id] = name;
+				}
+
+				Dictionary<string, string> sensorPrefix = [];
+				foreach (XmlNode sensorNode in sensorNodes)
+				{
+					string id = sensorNode.Attributes["Id"].Value;
+					string name = sensorNode.Attributes["Prefix"].Value;
+					sensorPrefix[id] = name;
+				}
+				// Переименование столбцов на основе кодов sensor и их названий
+				for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+				{
+					string header = worksheet.Cells[1, col].Text;
+					if (header.StartsWith("S") && sensorNames.ContainsKey(header.Substring(1)))
+					{
+						worksheet.Cells[1, col].Value = sensorNames[header.Substring(1)];
+						string sprefix = sensorPrefix[header.Substring(1)];
+						if (int.TryParse(sprefix, out int prefix))
+						{
+							worksheet.Cells[3, col].Value = prefix;
+						}
+						else
+						{
+							worksheet.Cells[3, col].Value = 0;
+						}
+					}
+				}
+			}
+
+			// Добавление второй строки с счетчиком столбов
+			for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+			{
+				worksheet.Cells[2, col].Value = col - 1; // Устанавливаем значение счетчика столбов
+			}
+			worksheet.Cells["A2"].Style.Numberformat.Format = "@";
+
+			// Вставка текста в ячейку A3 с переносами строк
+			worksheet.Cells["A3"].Value = "Время\nПризнак обработки:\n1-среднее,\n2-сложение,\n3-признак времени\n4 - признак температуры";
+			worksheet.Cells["A3"].Style.WrapText = true; // Включаем перенос текста
+			worksheet.Cells["A3"].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center; // Выравниваем текст по центру
+
+			// Установить признак времени у времени
+			worksheet.Cells["B3"].Value = 3;
+			worksheet.Cells["C3"].Value = 3;
+			worksheet.Cells["D3"].Value = 3;
+			worksheet.Cells["E3"].Value = 3;
+			worksheet.Cells["F3"].Value = 3;
+
+			// Добавление тонкой линии после первого столбца
+			worksheet.Column(2).Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+			// Добавление тонкой линии после первой строки
+			worksheet.Row(2).Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+
+			// Сохранение изменений в Excel файл
+			await excelPackage.SaveAsAsync(excelFile);
+		}
+
+		/// <summary>
+		/// Асинхронная функция сохранения данных из базы данных в CSV-файл
+		/// </summary>
+		private async Task ExportToCSVAsync1()
 		{
 			try
 			{
@@ -626,7 +1247,7 @@ namespace SQLBuilder
 					{
 						while (!reader.EndOfStream)
 						{
-							string line = reader.ReadLine();
+							string? line = reader.ReadLine();
 							string[] values = line.Split(',');
 							csvData.Add(values);
 						}
@@ -692,7 +1313,7 @@ namespace SQLBuilder
 			}
 		}
 
-		private async Task ExportToExcelAsync() 
+		private async Task ExportToExcelAsync1() 
 		{
 			try
 			{
@@ -1146,7 +1767,7 @@ namespace SQLBuilder
 
 		private void cmdApply_Click(object sender, EventArgs e)
 		{
-			SaveIni();
+			SaveIniFile();
 		}
 
 		private void listView_DoubleClick(object sender, EventArgs e)
@@ -1237,7 +1858,7 @@ namespace SQLBuilder
 				};
 
 				// Запускаем процесс
-				using Process process = Process.Start(startInfo);
+				using Process? process = Process.Start(startInfo);
 				// Читаем вывод процесса
 				string output = process.StandardOutput.ReadToEnd();
 				string error = process.StandardError.ReadToEnd();
