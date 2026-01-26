@@ -67,6 +67,9 @@ namespace SQLBuilder
             iniFile.WriteKey("FILENAME", "SQL_DB_TrustServerCertificate", chkTrustServerCertificate.Checked.ToString());
             iniFile.WriteKey("FILENAME", "AddDateToFileResult", chkResultsFileNameAddDate.Checked.ToString());
             iniFile.WriteKey("FILENAME", "Format_Export", cbxFormat.SelectedIndex.ToString());
+            // Секция PSEE
+            iniFile.WriteKey("PSEE", "Report_Date", dtpDt.Value.Date.ToLongDateString());
+            iniFile.WriteKey("PSEE", "Step_Days", txtDays.Text);
             Log.Write("Запись параметров в ini-файл завершена");
         }
 
@@ -423,6 +426,62 @@ namespace SQLBuilder
             {
                 cbxFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию, если ключ не существует
             }
+            
+            // Секция PSEE
+            try
+            {
+                // Загружаем из INI-файла дату отчета
+                if (iniFile.KeyExists("PSEE", "Report_Date"))
+                {
+                    string reportDateStr = iniFile.ReadKey("PSEE", "Report_Date");
+                    if (DateTime.TryParse(reportDateStr, out DateTime reportDate))
+                    {
+                        dtpDt.Value = reportDate;
+                    }
+                    else
+                    {
+                        dtpDt.Value = DateTime.Today; // Устанавливаем текущую дату по умолчанию
+                    }
+                }
+                else
+                {
+                    dtpDt.Value = DateTime.Today; // Устанавливаем текущую дату по умолчанию
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при загрузке даты отчета: {ex.Message}");
+                Log.Write($"Ошибка при загрузке даты отчета: {ex.Message}");
+                dtpDt.Value = DateTime.Today; // Устанавливаем текущую дату по умолчанию в случае ошибки
+            }
+            
+            try
+            {
+                // Загружаем из INI-файла глубину шага
+                if (iniFile.KeyExists("PSEE", "Step_Days"))
+                {
+                    string stepDaysStr = iniFile.ReadKey("PSEE", "Step_Days");
+                    if (int.TryParse(stepDaysStr, out int stepDays))
+                    {
+                        txtDays.Text = stepDays.ToString();
+                    }
+                    else
+                    {
+                        txtDays.Text = "4"; // Устанавливаем значение по умолчанию 4 дня
+                    }
+                }
+                else
+                {
+                    txtDays.Text = "4"; // Устанавливаем значение по умолчанию 4 дня
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при загрузке глубины шага: {ex.Message}");
+                Log.Write($"Ошибка при загрузке глубины шага: {ex.Message}");
+                txtDays.Text = "4"; // Устанавливаем значение по умолчанию в случае ошибки
+            }
+            
             Log.Write("Загрузка параметров из ini-файла завершена");
         }
 
@@ -472,8 +531,39 @@ namespace SQLBuilder
                 this.Text = $"{txtConfigName.Text} (Конфигурация: {Program._department})";
                 lblVersion.Text = $"Версия: {Application.ProductVersion}";
                 TextBoxRead();
+                
+                // Подписываемся на событие изменения выбранной вкладки
+                tabMain.SelectedIndexChanged += TabMain_SelectedIndexChanged;
+                // Подписываемся на событие клика кнопки экспорта PSEE
+                cmdExportPsee.Click += CmdExportPsee_Click;
+                // Инициализируем видимость кнопки экспорта PSEE
+                UpdatePseeExportButtonVisibility();
             }
 
+        }
+
+        /// <summary>
+        /// Обработчик события изменения выбранной вкладки
+        /// </summary>
+        private void TabMain_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            UpdatePseeExportButtonVisibility();
+            
+            // Если выбрана вкладка PSEE, обновляем данные
+            if (tabMain.SelectedTab == tpgPSEE)
+            {
+                // Загружаем данные асинхронно
+                _ = Task.Run(async () => await LoadPseeDataAsync());
+            }
+        }
+
+        /// <summary>
+        /// Обновляет видимость кнопки экспорта PSEE в зависимости от активной вкладки
+        /// </summary>
+        private void UpdatePseeExportButtonVisibility()
+        {
+            // Показываем кнопку cmdExportPsee только когда отображается вкладка tpgPSEE
+            cmdExportPsee.Visible = tabMain.SelectedTab == tpgPSEE;
         }
 
         /// <summary>
@@ -1934,6 +2024,230 @@ namespace SQLBuilder
             {
                 txtConfigName.Text = treeView.SelectedNode.Text;
                 txtConfigNameId.Text = treeView.SelectedNode.Tag.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Загружает данные из хранимой процедуры sp_psee_ppc
+        /// </summary>
+        private async Task LoadPseeDataAsync()
+        {
+            try
+            {
+                // Проверяем правильность ввода глубины дней
+                if (!int.TryParse(txtDays.Text, out int days))
+                {
+                    MessageBox.Show("Неверное значение глубины шага. Введите целое число.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Получаем строку подключения из текущих настроек
+                SqlConnectionStringBuilder builder = new()
+                {
+                    DataSource = txtDataSource.Text,
+                    UserID = txtUserID.Text,
+                    Password = txtSQLDBPass.Text,
+                    InitialCatalog = txtInitialCatalog.Text,
+                    IntegratedSecurity = chkIntegratedSecurity.Checked,
+                    TrustServerCertificate = chkTrustServerCertificate.Checked
+                };
+
+                using SqlConnection connection = new(builder.ConnectionString);
+                await connection.OpenAsync();
+
+                using SqlCommand command = new("sp_psee_ppc", connection)
+                {
+                    CommandType = CommandType.StoredProcedure,
+                    CommandTimeout = 300 // 5 минут таймаут
+                };
+
+                // Добавляем параметры
+                command.Parameters.AddWithValue("@days", days);
+                command.Parameters.AddWithValue("@dt", dtpDt.Value);
+
+                using SqlDataReader reader = await command.ExecuteReaderAsync();
+                
+                // Очищаем текущие данные
+                listPSEE.Items.Clear();
+
+                // Создаем временный список для хранения данных
+                List<ListViewItem> items = new();
+
+                while (await reader.ReadAsync())
+                {
+                    // Получаем значения из результата по индексам колонок
+                    string dateValue = reader[0]?.ToString() ?? "";        // date
+                    string datetimeValue = reader[1]?.ToString() ?? "";    // datetime
+                    string numericValue = reader[2]?.ToString() ?? "";     // float
+                    string dimensionValue = reader[3]?.ToString() ?? "";   // varchar - размерность
+                    string nameValue = reader[4]?.ToString() ?? "";        // varchar - наименование
+                    string processedValue = reader[5]?.ToString() ?? "";   // varchar - признак обработки
+
+                    ListViewItem item = new(new[] {
+                        "", // Код (оставляем пустым или генерируем индекс)
+                        dateValue,
+                        datetimeValue,
+                        numericValue,
+                        dimensionValue,
+                        nameValue,
+                        processedValue
+                    });
+
+                    items.Add(item);
+                }
+
+                // Добавляем все элементы в ListView
+                listPSEE.Items.AddRange(items.ToArray());
+
+                Log.Write($"Загружено {items.Count} записей из хранимой процедуры sp_psee_ppc");
+            }
+            catch (SqlException sqlEx)
+            {
+                Log.Write($"Ошибка при вызове хранимой процедуры: {sqlEx.Message}");
+                MessageBox.Show($"Ошибка при вызове хранимой процедуры: {sqlEx.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"Ошибка при загрузке данных из хранимой процедуры: {ex.Message}");
+                MessageBox.Show($"Ошибка при загрузке данных: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Экспортирует данные из хранимой процедуры в файл
+        /// </summary>
+        private async void CmdExportPsee_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Проверяем правильность ввода глубины дней
+                if (!int.TryParse(txtDays.Text, out int days))
+                {
+                    MessageBox.Show("Неверное значение глубины шага. Введите целое число.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Получаем строку подключения из текущих настроек
+                SqlConnectionStringBuilder builder = new()
+                {
+                    DataSource = txtDataSource.Text,
+                    UserID = txtUserID.Text,
+                    Password = txtSQLDBPass.Text,
+                    InitialCatalog = txtInitialCatalog.Text,
+                    IntegratedSecurity = chkIntegratedSecurity.Checked,
+                    TrustServerCertificate = chkTrustServerCertificate.Checked
+                };
+
+                using SqlConnection connection = new(builder.ConnectionString);
+                await connection.OpenAsync();
+
+                using SqlCommand command = new("sp_psee_ppc", connection)
+                {
+                    CommandType = CommandType.StoredProcedure,
+                    CommandTimeout = 300 // 5 минут таймаут
+                };
+
+                // Добавляем параметры
+                command.Parameters.AddWithValue("@days", days);
+                command.Parameters.AddWithValue("@dt", dtpDt.Value);
+
+                using SqlDataReader reader = await command.ExecuteReaderAsync();
+                
+                // Создаем DataTable для хранения результатов
+                DataTable dataTable = new();
+                
+                // Добавляем столбцы в DataTable
+                dataTable.Columns.Add("date", typeof(string));
+                dataTable.Columns.Add("datetime", typeof(string));
+                dataTable.Columns.Add("float", typeof(string));
+                dataTable.Columns.Add("dimension", typeof(string));  // размерность
+                dataTable.Columns.Add("name", typeof(string));       // наименование
+                dataTable.Columns.Add("processed", typeof(string));  // признак обработки
+
+                while (await reader.ReadAsync())
+                {
+                    DataRow row = dataTable.NewRow();
+                    
+                    row["date"] = reader[0]?.ToString() ?? "";        // date
+                    row["datetime"] = reader[1]?.ToString() ?? "";    // datetime
+                    row["float"] = reader[2]?.ToString() ?? "";       // float
+                    row["dimension"] = reader[3]?.ToString() ?? "";   // varchar - размерность
+                    row["name"] = reader[4]?.ToString() ?? "";        // varchar - наименование
+                    row["processed"] = reader[5]?.ToString() ?? "";   // varchar - признак обработки
+                    
+                    dataTable.Rows.Add(row);
+                }
+
+                // Генерируем имя файла
+                string fileName = txtSQLFileName.Text;
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    fileName = "output";
+                }
+                else
+                {
+                    fileName = Path.GetFileNameWithoutExtension(fileName);
+                }
+                
+                // Добавляем префикс _psee_ppc
+                fileName = fileName + "_psee_ppc";
+
+                // Получаем путь к папке результатов
+                IniFile iniFile = new(string.IsNullOrEmpty(_config) ? "config.ini" : $"config_{_config}.ini");
+                string filePath = iniFile.ReadKey("FILENAME", "PathToResultFolder");
+                
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    MessageBox.Show("Не указана папка для результатов. Укажите папку в настройках.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Формируем полный путь к файлу
+                string currentDateTime = DateTime.Now.ToString("yyyyMMdd_HH_mm_ss");
+                string fileExtension = "";
+                string fullFilePath = "";
+
+                if (cbxFormat.SelectedIndex == 0) // Excel
+                {
+                    fileExtension = ".xlsx";
+                    if (chkResultsFileNameAddDate.Checked)
+                    {
+                        fullFilePath = $"{filePath}\\{fileName}_{currentDateTime}{fileExtension}";
+                    }
+                    else
+                    {
+                        fullFilePath = $"{filePath}\\{fileName}{fileExtension}";
+                    }
+                    
+                    await WriteDataTableToExcelAsync(dataTable, fullFilePath);
+                }
+                else // CSV
+                {
+                    fileExtension = ".csv";
+                    if (chkResultsFileNameAddDate.Checked)
+                    {
+                        fullFilePath = $"{filePath}\\{fileName}_{currentDateTime}{fileExtension}";
+                    }
+                    else
+                    {
+                        fullFilePath = $"{filePath}\\{fileName}{fileExtension}";
+                    }
+                    
+                    WriteDataTableToCsv(dataTable, fullFilePath);
+                }
+
+                Log.Write($"Данные экспортированы в файл: {fullFilePath}");
+                MessageBox.Show($"Данные успешно экспортированы в файл: {fullFilePath}", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (SqlException sqlEx)
+            {
+                Log.Write($"Ошибка при вызове хранимой процедуры: {sqlEx.Message}");
+                MessageBox.Show($"Ошибка при вызове хранимой процедуры: {sqlEx.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"Ошибка при экспорте данных: {ex.Message}");
+                MessageBox.Show($"Ошибка при экспорте данных: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
