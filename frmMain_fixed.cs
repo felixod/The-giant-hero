@@ -16,17 +16,6 @@ namespace SQLBuilder
         private Stopwatch stopwatch = new();
         private System.Windows.Forms.Timer? timer;
 
-        // Добавляем объявления для новых элементов управления
-        private TabPage tpgPseePpc;
-        private GroupBox gpbPseePpc;
-        private Button cmdExportPseePpc;
-        private NumericUpDown nudPseePpcDays;
-        private Label lblPseePpcDays;
-        private DateTimePicker dtpPseePpcDate;
-        private Label lblPseePpcDate;
-        private ComboBox cbxPseePpcFormat;
-        private Label lblPseePpcFormat;
-
         /// <summary>
         /// Конструктор класса основной формы приложения
         /// </summary>
