@@ -1,25 +1,30 @@
-```
-# Build artifacts
-*.exe
-*.dll
-*.pdb
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
 *.obj
-*.lib
+*.dll
+*.exe
 *.so
-*.dylib
-*.a
+*.class
+*.out
 
 # Dependencies
-packages/
-bin/
-obj/
-Debug/
-Release/
-x64/
-x86/
+.venv/
+venv/
+node_modules/
+target/
+.gradle/
+.mypy_cache/
+.pytest_cache/
+dist/
+build/
 
-# Logs
+# Logs and temp files
 *.log
+*.tmp
+*.swp
+*.swo
 
 # Environment
 .env
@@ -32,7 +37,7 @@ x86/
 *.swp
 *.swo
 
-# OS generated files
+# System
 .DS_Store
 Thumbs.db
 
@@ -60,4 +65,7 @@ htmlcov/
 *.Z
 *.lz
 *.lzo
-```
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
