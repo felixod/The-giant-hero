@@ -67,6 +67,10 @@ namespace SQLBuilder
 			iniFile.WriteKey("FILENAME", "SQL_DB_TrustServerCertificate", chkTrustServerCertificate.Checked.ToString());
 			iniFile.WriteKey("FILENAME", "AddDateToFileResult", chkResultsFileNameAddDate.Checked.ToString());
 			iniFile.WriteKey("FILENAME", "Format_Export", cbxFormat.SelectedIndex.ToString());
+			// Сохранение параметров для sp_psee_ppc
+			iniFile.WriteKey("FILENAME", "PseePpc_Days", nudPseePpcDays.Value.ToString());
+			iniFile.WriteKey("FILENAME", "PseePpc_Date", dtpPseePpcDate.Value.ToString("yyyy-MM-dd"));
+			iniFile.WriteKey("FILENAME", "PseePpc_Format", cbxPseePpcFormat.SelectedIndex.ToString());
 			Log.Write("Запись параметров в ini-файл завершена");
 		}
 
@@ -423,6 +427,58 @@ namespace SQLBuilder
 			{
 				cbxFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию, если ключ не существует
 			}
+
+			// Загружаем параметры для sp_psee_ppc
+			if (iniFile.KeyExists("FILENAME", "PseePpc_Days"))
+			{
+				string pseePpcDaysValue = iniFile.ReadKey("FILENAME", "PseePpc_Days");
+				if (int.TryParse(pseePpcDaysValue, out int days))
+				{
+					nudPseePpcDays.Value = days;
+				}
+				else
+				{
+					nudPseePpcDays.Value = 4; // Устанавливаем значение по умолчанию
+				}
+			}
+			else
+			{
+				nudPseePpcDays.Value = 4; // Устанавливаем значение по умолчанию, если ключ не существует
+			}
+
+			if (iniFile.KeyExists("FILENAME", "PseePpc_Date"))
+			{
+				string pseePpcDateValue = iniFile.ReadKey("FILENAME", "PseePpc_Date");
+				if (DateTime.TryParse(pseePpcDateValue, out DateTime date))
+				{
+					dtpPseePpcDate.Value = date;
+				}
+				else
+				{
+					dtpPseePpcDate.Value = DateTime.Now; // Устанавливаем текущую дату по умолчанию
+				}
+			}
+			else
+			{
+				dtpPseePpcDate.Value = DateTime.Now; // Устанавливаем текущую дату по умолчанию
+			}
+
+			if (iniFile.KeyExists("FILENAME", "PseePpc_Format"))
+			{
+				string pseePpcFormatValue = iniFile.ReadKey("FILENAME", "PseePpc_Format");
+				if (int.TryParse(pseePpcFormatValue, out int formatIndex))
+				{
+					cbxPseePpcFormat.SelectedIndex = formatIndex;
+				}
+				else
+				{
+					cbxPseePpcFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию
+				}
+			}
+			else
+			{
+				cbxPseePpcFormat.SelectedIndex = 0; // Устанавливаем значение по умолчанию
+			}
 			Log.Write("Загрузка параметров из ini-файла завершена");
 		}
 
@@ -677,6 +733,48 @@ namespace SQLBuilder
 			{
 				Log.Write($"Ошибка при экспорте: {ex.Message}");
 				// Дополнительная обработка ошибок, если необходимо
+			}
+		}
+
+		/// <summary>
+		/// Обработка события нажатия на кнопку экспорта из sp_psee_ppc
+		/// </summary>
+		private async void cmdExportPseePpc_Click(object sender, EventArgs e)
+		{
+			try
+			{
+				PseePpcExporter exporter = new(
+					txtDataSource.Text,
+					txtUserID.Text,
+					txtSQLDBPass.Text,
+					txtInitialCatalog.Text,
+					chkIntegratedSecurity.Checked,
+					chkTrustServerCertificate.Checked,
+					_config,
+					_silent
+				);
+
+				int days = (int)nudPseePpcDays.Value;
+				DateTime date = dtpPseePpcDate.Value;
+
+				if (cbxPseePpcFormat.SelectedIndex == 0)
+				{
+					Log.Write("Выгружаем в файл формата Microsoft Excel из sp_psee_ppc");
+					await exporter.ExportToExcelAsync(days, date);
+				}
+				else
+				{
+					Log.Write("Выгружаем в файл формата CSV из sp_psee_ppc");
+					await exporter.ExportToCsvAsync(days, date);
+				}
+			}
+			catch (Exception ex)
+			{
+				Log.Write($"Ошибка при экспорте из sp_psee_ppc: {ex.Message}");
+				if (!_silent)
+				{
+					MessageBox.Show($"Ошибка при экспорте: {ex.Message}");
+				}
 			}
 		}
 

@@ -147,6 +147,7 @@
 			tabMain.Controls.Add(tpgSchedule);
 			tabMain.Controls.Add(tpgInterval);
 			tabMain.Controls.Add(tpgFileName);
+			tabMain.Controls.Add(tpgPseePpc);
 			tabMain.Controls.Add(tpgLog);
 			tabMain.Location = new Point(12, 12);
 			tabMain.Name = "tabMain";
@@ -488,6 +489,96 @@
 			tpgFileName.TabIndex = 2;
 			tpgFileName.Text = "Имя файла";
 			tpgFileName.UseVisualStyleBackColor = true;
+			// 
+			// tpgPseePpc
+			// 
+			tpgPseePpc.Controls.Add(gpbPseePpc);
+			tpgPseePpc.Location = new Point(4, 24);
+			tpgPseePpc.Name = "tpgPseePpc";
+			tpgPseePpc.Size = new Size(1001, 407);
+			tpgPseePpc.TabIndex = 5;
+			tpgPseePpc.Text = "PSEE PPC";
+			tpgPseePpc.UseVisualStyleBackColor = true;
+			// 
+			// gpbPseePpc
+			// 
+			gpbPseePpc.Controls.Add(cbxPseePpcFormat);
+			gpbPseePpc.Controls.Add(lblPseePpcFormat);
+			gpbPseePpc.Controls.Add(cmdExportPseePpc);
+			gpbPseePpc.Controls.Add(nudPseePpcDays);
+			gpbPseePpc.Controls.Add(lblPseePpcDays);
+			gpbPseePpc.Controls.Add(dtpPseePpcDate);
+			gpbPseePpc.Controls.Add(lblPseePpcDate);
+			gpbPseePpc.Location = new Point(6, 6);
+			gpbPseePpc.Name = "gpbPseePpc";
+			gpbPseePpc.Size = new Size(992, 395);
+			gpbPseePpc.TabIndex = 3;
+			gpbPseePpc.TabStop = false;
+			gpbPseePpc.Text = "Параметры хранимой процедуры sp_psee_ppc";
+			// 
+			// lblPseePpcDate
+			// 
+			lblPseePpcDate.AutoSize = true;
+			lblPseePpcDate.Location = new Point(6, 28);
+			lblPseePpcDate.Name = "lblPseePpcDate";
+			lblPseePpcDate.Size = new Size(87, 15);
+			lblPseePpcDate.TabIndex = 0;
+			lblPseePpcDate.Text = "Дата отсчета:";
+			// 
+			// dtpPseePpcDate
+			// 
+			dtpPseePpcDate.Location = new Point(139, 24);
+			dtpPseePpcDate.Name = "dtpPseePpcDate";
+			dtpPseePpcDate.Size = new Size(145, 23);
+			dtpPseePpcDate.TabIndex = 1;
+			// 
+			// lblPseePpcDays
+			// 
+			lblPseePpcDays.AutoSize = true;
+			lblPseePpcDays.Location = new Point(6, 63);
+			lblPseePpcDays.Name = "lblPseePpcDays";
+			lblPseePpcDays.Size = new Size(124, 15);
+			lblPseePpcDays.TabIndex = 2;
+			lblPseePpcDays.Text = "Глубина дней (days):";
+			// 
+			// nudPseePpcDays
+			// 
+			nudPseePpcDays.Location = new Point(139, 59);
+			nudPseePpcDays.Maximum = new decimal(new int[] { 365, 0, 0, 0 });
+			nudPseePpcDays.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+			nudPseePpcDays.Name = "nudPseePpcDays";
+			nudPseePpcDays.Size = new Size(64, 23);
+			nudPseePpcDays.TabIndex = 3;
+			nudPseePpcDays.Value = new decimal(new int[] { 4, 0, 0, 0 });
+			// 
+			// cmdExportPseePpc
+			// 
+			cmdExportPseePpc.Location = new Point(6, 135);
+			cmdExportPseePpc.Name = "cmdExportPseePpc";
+			cmdExportPseePpc.Size = new Size(197, 44);
+			cmdExportPseePpc.TabIndex = 4;
+			cmdExportPseePpc.Text = "Экспорт из sp_psee_ppc";
+			cmdExportPseePpc.UseVisualStyleBackColor = true;
+			cmdExportPseePpc.Click += cmdExportPseePpc_Click;
+			// 
+			// lblPseePpcFormat
+			// 
+			lblPseePpcFormat.AutoSize = true;
+			lblPseePpcFormat.Location = new Point(6, 100);
+			lblPseePpcFormat.Name = "lblPseePpcFormat";
+			lblPseePpcFormat.Size = new Size(107, 15);
+			lblPseePpcFormat.TabIndex = 5;
+			lblPseePpcFormat.Text = "Формат выгрузки:";
+			// 
+			// cbxPseePpcFormat
+			// 
+			cbxPseePpcFormat.DropDownStyle = ComboBoxStyle.DropDownList;
+			cbxPseePpcFormat.FormattingEnabled = true;
+			cbxPseePpcFormat.Items.AddRange(new object[] { "Microsoft Excel (xlsx)", "Текстовый формат (csv)" });
+			cbxPseePpcFormat.Location = new Point(139, 97);
+			cbxPseePpcFormat.Name = "cbxPseePpcFormat";
+			cbxPseePpcFormat.Size = new Size(145, 23);
+			cbxPseePpcFormat.TabIndex = 6;
 			// 
 			// gpbFileName
 			// 
@@ -838,6 +929,15 @@
 		internal Label Label1;
 		internal TabPage tpgInterval;
 		internal GroupBox gpbInterval;
+		private TabPage tpgPseePpc;
+		private GroupBox gpbPseePpc;
+		private Button cmdExportPseePpc;
+		private NumericUpDown nudPseePpcDays;
+		private Label lblPseePpcDays;
+		private DateTimePicker dtpPseePpcDate;
+		private Label lblPseePpcDate;
+		private ComboBox cbxPseePpcFormat;
+		private Label lblPseePpcFormat;
 		internal Label lblFinalData;
 		internal DateTimePicker dtpFinalData;
 		internal Label lblStartData;
